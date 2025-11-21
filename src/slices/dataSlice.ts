@@ -21,7 +21,7 @@ const initialState: DataState = {
   error: null,
 };
 
-// Le Thunk est maintenant beaucoup plus intelligent
+
 export const fetchData = createAsyncThunk('data/fetchData', async () => {
   const response = await fetch('/tempanomaly_4x4grid.json');
   if (!response.ok) {

@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
-// Correction des chemins pour store et hooks
 import { store } from './stores/store'; 
 import { useAppSelector, useAppDispatch } from './hooks/hooks';
 import { fetchData } from './slices/dataSlice';
@@ -14,7 +13,7 @@ import { Toolbar } from './components/Toolbar';
 function AppContent() {
   const dispatch = useAppDispatch();
 
-  // On garde seulement les sélecteurs nécessaires pour AppContent
+  
   const dataStatus = useAppSelector((state) => state.data.status);
   const { 
     graph: showGraph, 
@@ -22,8 +21,7 @@ function AppContent() {
     heatmap: showHeatmap 
   } = useAppSelector((state) => state.layout.visibleViews);
   
-  // Les sélecteurs pour currentYear et temperatureData sont SUPPRIMÉS
-  // car les composants enfants les récupèrent eux-mêmes.
+
 
   useEffect(() => {
     if (dataStatus === 'idle') {
@@ -32,7 +30,7 @@ function AppContent() {
   }, [dataStatus, dispatch]);
 
   if (dataStatus === 'loading') {
-    return <div style={{ padding: '20px' }}>Loading data...</div>; // Ajout d'un peu de style
+    return <div style={{ padding: '20px' }}>Loading data...</div>; 
   }
   
   if (dataStatus === 'failed') {

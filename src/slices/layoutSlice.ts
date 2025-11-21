@@ -4,7 +4,7 @@ interface VisibleViews {
   graph: boolean;
   histogram: boolean;
   heatmap: boolean;
-  // Ajoutez d'autres vues si nécessaire
+  
 }
 
 interface LayoutState {
@@ -15,7 +15,7 @@ const initialState: LayoutState = {
   visibleViews: {
     graph: true,
     histogram: true,
-    heatmap: true, // Modifié pour correspondre à votre App.tsx (HeatmapView est affichée)
+    heatmap: true, 
   },
 };
 

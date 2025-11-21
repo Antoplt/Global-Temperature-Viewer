@@ -1,12 +1,47 @@
-import React from 'react';
-// 1. Import du hook
-import { useAppSelector } from '../hooks/hooks';
+import React, { useRef, useState } from 'react';
+// 1. Imports mis à jour
+import { useAppSelector, useAppDispatch } from '../hooks/hooks';
+import { addLatitude, addArea, SelectionRectangle } from '../slices/selectionSlice';
 
 // 2. Suppression de 'MapContainerProps' et de la prop '{ currentYear }'
 export const MapContainer: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  // 3. Récupération de 'currentYear' directement depuis le store
+  // État local pour gérer le dessin en cours
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
+  const [currentRect, setCurrentRect] = useState<SelectionRectangle | null>(null);
+
+  // 3. Récupération des états depuis le store
   const currentYear = useAppSelector((state) => state.controls.currentYear);
+  const { selectionMode, selectedLatitudes, selectedAreas } = useAppSelector((state) => state.selection);
+
+  // --- Fonctions de conversion de coordonnées ---
+  const latitudeToY = (lat: number): number => {
+    // Mappage linéaire: 90N -> 0, 0 (équateur) -> 300, -90S -> 600
+    return 300 - (lat / 90) * 300;
+  };
+  const yToLatitude = (y: number): number => {
+    return Math.round(((300 - y) / 300) * 90);
+  };
+  const longitudeToX = (lon: number): number => {
+    // Mappage linéaire: -180W -> 0, 0 -> 600, 180E -> 1200
+    return 600 + (lon / 180) * 600;
+  };
+  const xToLongitude = (x: number): number => {
+    return Math.round(((x - 600) / 600) * 180);
+  };
+
+  // Convertit un rectangle de coordonnées en attributs SVG pour <rect>
+  const rectToSvgProps = (rect: SelectionRectangle) => {
+    const x = longitudeToX(rect.minLon);
+    const y = latitudeToY(rect.maxLat);
+    const width = longitudeToX(rect.maxLon) - x;
+    const height = latitudeToY(rect.minLat) - y;
+    return { x, y, width, height };
+  };
+  // --- Fin des fonctions de conversion ---
 
   // Le reste de votre logique et de votre JSX est INCHANGÉ
   // Temperature colors based on year progression
@@ -21,9 +56,84 @@ export const MapContainer: React.FC = () => {
     return '#DC2626'; // red-600
   };
 
+  // --- Gestionnaires d'événements souris ---
+  const getPointInSvg = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return null;
+    const svgPoint = svgRef.current.createSVGPoint();
+    svgPoint.x = event.clientX;
+    svgPoint.y = event.clientY;
+    return svgPoint.matrixTransform(svgRef.current.getScreenCTM()?.inverse());
+  };
+
+  const handleMouseDown = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (selectionMode !== 'area') return;
+    event.preventDefault();
+    const point = getPointInSvg(event);
+    if (!point) return;
+
+    setIsDrawing(true);
+    setStartPoint({ x: point.x, y: point.y });
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (!isDrawing || !startPoint) return;
+    const point = getPointInSvg(event);
+    if (!point) return;
+
+    const minX = Math.min(startPoint.x, point.x);
+    const maxX = Math.max(startPoint.x, point.x);
+    const minY = Math.min(startPoint.y, point.y);
+    const maxY = Math.max(startPoint.y, point.y);
+
+    setCurrentRect({
+      id: 'temp',
+      minLon: xToLongitude(minX),
+      maxLon: xToLongitude(maxX),
+      minLat: yToLatitude(maxY), // Y inversé pour la latitude
+      maxLat: yToLatitude(minY),
+    });
+  };
+
+  const handleMouseUp = () => {
+    if (!isDrawing || !currentRect) return;
+    
+    // Finaliser la zone et l'ajouter au store Redux
+    dispatch(addArea({ ...currentRect, id: new Date().toISOString() }));
+
+    // Réinitialiser l'état de dessin
+    setIsDrawing(false);
+    setStartPoint(null);
+    setCurrentRect(null);
+  };
+
+  const handleMouseLeave = () => {
+    // Annule le dessin si la souris quitte le SVG
+    if (isDrawing) {
+      setIsDrawing(false);
+      setStartPoint(null);
+      setCurrentRect(null);
+    }
+  };
+
+  const handleMapClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (selectionMode === 'latitude') {
+      const point = getPointInSvg(event);
+      if (!point) return;
+      const clickedLat = yToLatitude(point.y);
+      if (clickedLat >= -90 && clickedLat <= 90) {
+        dispatch(addLatitude(clickedLat));
+      }
+    }
+  };
+
   return (
     <div className="w-full h-full overflow-visible relative" data-name="ComposableMap">
-      <svg viewBox="0 0 1200 600" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ transform: 'translateY(-10%)' }}>
+      {/* Ajout de ref et onClick */}
+      <svg 
+        ref={svgRef} 
+        onClick={handleMapClick}
+        onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}
+        viewBox="0 0 1200 600" className={`w-full h-full ${selectionMode !== 'none' ? 'cursor-crosshair' : ''}`} preserveAspectRatio="xMidYMid meet" style={{ transform: 'translateY(-10%)' }}>
         <defs>
           <filter id="glow">
             <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -34,6 +144,37 @@ export const MapContainer: React.FC = () => {
           </filter>
         </defs>
         
+        {/* Ocean background (placé en premier pour être en arrière-plan) */}
+        <rect x="0" y="0" width="1200" height="600" fill="#E0F2FE" opacity="0.3" style={{ mixBlendMode: 'multiply' }} />
+
+        {/* --- GROUPE POUR LES LIGNES DE LATITUDE --- */}
+        <g id="latitude-lines">
+          {selectedLatitudes.map(lat => (
+            <line
+              key={`lat-line-${lat}`}
+              x1="0" y1={latitudeToY(lat)} x2="1200" y2={latitudeToY(lat)}
+              stroke="#0A0A0A" strokeWidth="1.5" strokeDasharray="8 4" opacity="0.8"
+            />
+          ))}
+        </g>
+
+        {/* --- GROUPE POUR LES ZONES DE SÉLECTION --- */}
+        <g id="area-selections">
+          {selectedAreas.map(area => (
+            <rect key={area.id} {...rectToSvgProps(area)} fill="rgba(29, 78, 216, 0.2)" stroke="rgba(29, 78, 216, 0.8)" strokeWidth="2" />
+          ))}
+          {/* Rectangle de prévisualisation pendant le dessin */}
+          {isDrawing && currentRect && (
+            <rect
+              {...rectToSvgProps(currentRect)}
+              fill="rgba(59, 130, 246, 0.3)"
+              stroke="rgba(59, 130, 246, 1)"
+              strokeWidth="1.5"
+              strokeDasharray="6 3"
+            />
+          )}
+        </g>
+
         {/* Simplified World Map - Continents as geometric shapes */}
         <g transform="translate(100, 100)">
           {/* North America */}
@@ -145,8 +286,6 @@ export const MapContainer: React.FC = () => {
           />
         </g>
         
-        {/* Ocean background */}
-        <rect x="0" y="0" width="1200" height="600" fill="#E0F2FE" opacity="0.3" style={{ mixBlendMode: 'multiply' }} />
       </svg>
     </div>
   );

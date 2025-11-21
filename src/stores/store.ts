@@ -3,15 +3,10 @@ import dataReducer from '../slices/dataSlice';
 import controlsReducer from '../slices/controlsSlice';
 import selectionReducer from '../slices/selectionSlice';
 import layoutReducer from '../slices/layoutSlice';
-// Importez les anciens reducers si vous devez les supprimer
-// import temperatureReducer from '../slices/temperatureSlice'; // EXEMPLE
-// import uiReducer from '../slices/uiSlice'; // EXEMPLE
+
 
 export const store = configureStore({
   reducer: {
-    // Supprimez les anciens reducers (comme 'temperature' et 'ui')
-    // temperature: temperatureReducer, // À SUPPRIMER
-    // ui: uiReducer, // À SUPPRIMER
     
     // Ajoutez les nouveaux
     data: dataReducer,

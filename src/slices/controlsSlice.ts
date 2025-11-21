@@ -24,10 +24,8 @@ const controlsSlice = createSlice({
     },
     setAnimationSpeed: (state, action: PayloadAction<number>) => {
       state.animationSpeed = action.payload;
-    },
-    // Vous pouvez ajouter un reducer pour incrémenter l'année
+    },    
     incrementYear: (state) => {
-      // Ajoutez ici la logique pour gérer la fin de la timeline
       state.currentYear += 1; 
     }
   },
