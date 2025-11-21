@@ -14,7 +14,7 @@ export const MapContainer: React.FC = () => {
   const [currentRect, setCurrentRect] = useState<SelectionRectangle | null>(null);
 
   // Récupération des états depuis le store
-  const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon } = useAppSelector((state) => state.selection);
+  const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon, areaGroups, activeGroupId } = useAppSelector((state) => state.selection);
 
   // --- Fonctions de conversion de coordonnées ---
   const latitudeToY = (lat: number): number => {
@@ -72,6 +72,7 @@ export const MapContainer: React.FC = () => {
 
     setCurrentRect({
       id: 'temp',
+      groupId: activeGroupId || '', // Associer au groupe actif
       minLon: xToLongitude(minX),
       maxLon: xToLongitude(maxX),
       minLat: yToLatitude(maxY), // Y inversé pour la latitude
@@ -81,7 +82,7 @@ export const MapContainer: React.FC = () => {
 
   const handleMouseUp = () => {
     if (!isDrawing || !currentRect) return;
-    
+    if (!activeGroupId) return; // Ne rien faire si aucun groupe n'est actif
     // Finaliser la zone et l'ajouter au store Redux
     dispatch(addArea({ ...currentRect, id: new Date().toISOString() }));
 
@@ -163,8 +164,9 @@ export const MapContainer: React.FC = () => {
 
                 <g id="area-selections">
                   {selectedAreas.map((area, index) => {
+                    const group = areaGroups.find(g => g.id === area.groupId);
                     const props = rectToSvgProps(area);
-                    const color = LINE_COLORS[index % LINE_COLORS.length];
+                    const color = group?.color || '#888888'; // Couleur par défaut si le groupe n'est pas trouvé
                     // Convertir la couleur hexadécimale en RGBA pour le remplissage
                     const fillColor = `rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 0.2)`;
 
