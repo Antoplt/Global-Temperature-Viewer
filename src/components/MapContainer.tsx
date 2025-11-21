@@ -30,7 +30,7 @@ export const MapContainer: React.FC = () => {
   const [currentRect, setCurrentRect] = useState<SelectionRectangle | null>(null);
 
   // --- États Redux ---
-  const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon } = useAppSelector((state) => state.selection);
+  const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon, areaGroups, activeGroupId } = useAppSelector((state) => state.selection);
   const { allData, status } = useAppSelector((state) => state.data);
   const { currentYear } = useAppSelector((state) => state.controls);
 
@@ -147,6 +147,7 @@ export const MapContainer: React.FC = () => {
 
     setCurrentRect({
       id: 'temp',
+      groupId: activeGroupId || '', // Associer au groupe actif
       minLon: xToLongitude(minX),
       maxLon: xToLongitude(maxX),
       minLat: yToLatitude(maxY),
@@ -156,6 +157,7 @@ export const MapContainer: React.FC = () => {
 
   const handleMouseUp = () => {
     if (!isDrawing || !currentRect) return;
+    if (!activeGroupId) return; // Ne rien faire si aucun groupe n'est actif
     dispatch(addArea({ ...currentRect, id: new Date().toISOString() }));
     setIsDrawing(false);
     setStartPoint(null);
@@ -244,7 +246,7 @@ export const MapContainer: React.FC = () => {
                 imageRendering: 'auto' 
               }}
             />
-  
+
             {/* 3. SVG pour les sélections et grilles (au-dessus) */}
             <svg
               ref={svgRef}
@@ -276,8 +278,9 @@ export const MapContainer: React.FC = () => {
               {/* Zones sélectionnées (Rectangles) */}
               <g id="area-selections">
                 {selectedAreas.map((area, index) => {
+                  const group = areaGroups.find(g => g.id === area.groupId);
                   const props = rectToSvgProps(area);
-                  const color = LINE_COLORS[index % LINE_COLORS.length];
+                  const color = group?.color || '#888888'; // Couleur par défaut si le groupe n'est pas trouvé
                   const fillColor = `rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 0.1)`;
                   
                   return (

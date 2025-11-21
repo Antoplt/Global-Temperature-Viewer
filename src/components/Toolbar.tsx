@@ -67,7 +67,14 @@ export const Toolbar: React.FC = () => {
   };
 
   const handleRestart = () => {
-    dispatch(setCurrentYear(animationStartYearRef.current));
+    // Si l'année actuelle est déjà au point de départ de l'animation,
+    // un deuxième clic réinitialise à la toute première année.
+    if (currentYear === animationStartYearRef.current) {
+      dispatch(setCurrentYear(MIN_YEAR));
+    } else {
+      // Sinon, le premier clic ramène au début de l'animation.
+      dispatch(setCurrentYear(animationStartYearRef.current));
+    }
   };
 
   const handleSpeedChange = (newSpeed: number) => {

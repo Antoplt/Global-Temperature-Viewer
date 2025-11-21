@@ -24,12 +24,12 @@ export const GraphView: React.FC = () => {
   // --- Récupération des données depuis le store Redux ---
   const dispatch = useAppDispatch();
   const { allData, status } = useAppSelector((state) => state.data);
-  const { selectedAreas } = useAppSelector((state) => state.selection);
+  const { selectedAreas, areaGroups } = useAppSelector((state) => state.selection);
   const currentYear = useAppSelector((state) => state.controls.currentYear);
 
   // --- Calcul des données du graphique (mémoïsé pour la performance) ---
   const areaLinesData = useMemo(() => {
-    if (status !== 'succeeded' || selectedAreas.length === 0) {
+    if (status !== 'succeeded' || areaGroups.length === 0) {
       return [];
     }
 
@@ -42,30 +42,36 @@ export const GraphView: React.FC = () => {
       return acc;
     }, {} as Record<number, typeof allData>);
 
-    // 2. Pour chaque zone sélectionnée, calculer la moyenne par année
-    return selectedAreas.map(area => {
+    // 2. Pour chaque groupe, calculer la moyenne combinée de ses zones par année
+    return areaGroups.map(group => {
+      const areasInGroup = selectedAreas.filter(a => a.groupId === group.id);
+      if (areasInGroup.length === 0) return null;
+
       const yearlyMeans: { year: number; mean: number }[] = [];
 
       for (let year = MIN_YEAR; year <= MAX_YEAR; year++) {
         if (dataByYear[year]) {
-          // Filtrer les points de données qui sont dans la zone
-          const pointsInArea = dataByYear[year].filter(
-            d => d.lat >= area.minLat && d.lat <= area.maxLat && d.lon >= area.minLon && d.lon <= area.maxLon
+          // Agréger les points de toutes les zones du groupe
+          const pointsInGroup = areasInGroup.flatMap(area => 
+            dataByYear[year].filter(
+              d => d.lat >= area.minLat && d.lat <= area.maxLat && d.lon >= area.minLon && d.lon <= area.maxLon
+            )
           );
 
-          if (pointsInArea.length > 0) {
+          if (pointsInGroup.length > 0) {
             // Calculer la moyenne des anomalies
-            const sum = pointsInArea.reduce((acc, d) => acc + d.anomaly, 0);
-            yearlyMeans.push({ year, mean: sum / pointsInArea.length });
+            const sum = pointsInGroup.reduce((acc, d) => acc + d.anomaly, 0);
+            yearlyMeans.push({ year, mean: sum / pointsInGroup.length });
           }
         }
       }
       return {
-        areaId: area.id,
+        groupId: group.id,
+        color: group.color,
         data: yearlyMeans,
       };
-    });
-  }, [allData, selectedAreas, status]);
+    }).filter(Boolean) as { groupId: string; color: string; data: { year: number; mean: number }[] }[]; // Filtrer les groupes vides
+  }, [allData, selectedAreas, areaGroups, status]);
 
   // --- Création des échelles D3 ---
   const xScale = scaleLinear().domain([MIN_YEAR, MAX_YEAR]).range([0, CHART_WIDTH]);
@@ -96,7 +102,7 @@ export const GraphView: React.FC = () => {
   };
 
   // Si aucune zone n'est sélectionnée, afficher un message
-  if (selectedAreas.length === 0) {
+  if (areaGroups.length === 0) {
     return (
       <div className="bg-[rgba(255,255,255,0.95)] h-[200px] relative rounded-[10px] w-[360px] flex items-center justify-center p-4">
         <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none rounded-[10px] shadow-lg" />
@@ -131,11 +137,11 @@ export const GraphView: React.FC = () => {
             ))}
             
             {/* Temperature Line */}
-            {areaLinesData.map((lineData, index) => (
+            {areaLinesData.map((lineData) => (
               <path
-                key={lineData.areaId}
+                key={lineData.groupId}
                 d={lineGenerator(lineData.data) || ''}
-                stroke={LINE_COLORS[index % LINE_COLORS.length]}
+                stroke={lineData.color}
                 strokeWidth="2"
                 fill="none"
               />
@@ -158,10 +164,10 @@ export const GraphView: React.FC = () => {
           
       {/* Légende dynamique */}
       <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center gap-4 text-xs font-sans">
-        {areaLinesData.map((lineData, index) => (
-          <div key={lineData.areaId} className="flex items-center gap-2">
-            <div className="w-4 h-0.5" style={{ backgroundColor: LINE_COLORS[index % LINE_COLORS.length] }} />
-            <span>Area {selectedAreas.findIndex(a => a.id === lineData.areaId) + 1}</span>
+        {areaLinesData.map((lineData) => (
+          <div key={lineData.groupId} className="flex items-center gap-2">
+            <div className="w-4 h-0.5" style={{ backgroundColor: lineData.color }} />
+            <span>{areaGroups.find(g => g.id === lineData.groupId)?.name}</span>
           </div>
         ))}
       </div>
