@@ -1,103 +1,121 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 // 1. Import du hook
 import { useAppSelector } from '../hooks/hooks';
-// import { AnomalyData } from '../slices/dataSlice'; // Optionnel : pour typer 'yearData'
+import { scaleBand, scaleLinear } from 'd3-scale';
+import { group, mean } from 'd3-array';
 
-interface HistogramViewProps {
-  // 2. L'interface 'data' n'est plus nécessaire
-  // data: any[];
-}
+// --- Constantes pour les dimensions ---
+const SVG_WIDTH = 360;
+const SVG_HEIGHT = 200;
+const MARGIN = { top: 15, right: 15, bottom: 45, left: 30 };
+const CHART_WIDTH = SVG_WIDTH - MARGIN.left - MARGIN.right;
+const CHART_HEIGHT = SVG_HEIGHT - MARGIN.top - MARGIN.bottom;
 
-// 3. Suppression de la prop '{ data }'
-export const HistogramView: React.FC<HistogramViewProps> = () => {
+// --- Plage des températures pour l'axe Y ---
+const MIN_TEMP = -2;
+const MAX_TEMP = 2;
 
-  // 4. Récupération des données ET de l'année en cours
-  const { allData } = useAppSelector((state) => state.data);
+export const HistogramView: React.FC = () => {
+  // --- Récupération des données depuis le store ---
+  const { allData, status } = useAppSelector((state) => state.data);
   const currentYear = useAppSelector((state) => state.controls.currentYear);
-  
-  // 5. Logique de filtrage (à utiliser pour générer les barres dynamiques)
-  // Note : 'useMemo' serait idéal ici pour la performance
-  const yearData = allData.filter(d => d.year === currentYear);
-  
-  // --- Le JSX est inchangé, SAUF la légende ---
+  const { selectedLatitudes, selectionMode } = useAppSelector((state) => state.selection);
+
+  // --- Calcul des données pour l'histogramme (mémoïsé) ---
+  const histogramData = useMemo(() => {
+    if (status !== 'succeeded' || selectedLatitudes.length === 0) {
+      return [];
+    }
+
+    // 1. Filtrer les données pour l'année en cours et les latitudes sélectionnées
+    // On prend les latitudes les plus proches dans les données pour chaque sélection
+    const availableLats = [...new Set(allData.map(d => d.lat))];
+    const closestLats = selectedLatitudes.map(sl => 
+      availableLats.reduce((prev, curr) => 
+        Math.abs(curr - sl) < Math.abs(prev - sl) ? curr : prev
+      )
+    );
+
+    const filteredData = allData.filter(d => 
+      d.year === currentYear && closestLats.includes(d.lat)
+    );
+
+    // 2. Grouper par longitude et calculer la moyenne de l'anomalie
+    const groupedByLon = group(filteredData, d => d.lon);
+    
+    const data = Array.from(groupedByLon, ([lon, values]) => ({
+      lon,
+      meanAnomaly: mean(values, d => d.anomaly) || 0,
+    }));
+
+    // 3. Trier par longitude pour un affichage correct
+    return data.sort((a, b) => a.lon - b.lon);
+
+  }, [allData, currentYear, selectedLatitudes, status]);
+
+  // --- Création des échelles D3 ---
+  const xScale = scaleBand()
+    .domain(histogramData.map(d => d.lon.toString()))
+    .range([0, CHART_WIDTH])
+    .padding(0.2);
+
+  const yScale = scaleLinear()
+    .domain([MIN_TEMP, MAX_TEMP])
+    .range([CHART_HEIGHT, 0]);
+
+  // Si aucune latitude n'est sélectionnée, on affiche un message d'aide.
+  if (selectedLatitudes.length === 0) {
+    return (
+      <div className="bg-[rgba(255,255,255,0.95)] h-[200px] relative rounded-[10px] w-[360px] flex items-center justify-center p-4">
+        <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none rounded-[10px] shadow-lg" />
+        <p className="text-center text-gray-500 font-sans">Select one or more latitudes on the map to display the histogram.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="basis-0 bg-[rgba(255,255,255,0.95)] grow min-h-px min-w-px relative rounded-[10px] shrink-0 w-[360px]" data-name="TemperatureHistogram">
+    <div className="bg-[rgba(255,255,255,0.95)] h-[200px] relative rounded-[10px] w-[360px]" data-name="TemperatureHistogram">
       <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none rounded-[10px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
-      <div className="bg-clip-padding border-0 border-[transparent] border-solid box-border content-stretch flex flex-col h-full items-start pb-[1.6px] pl-[8px] pr-[13.4px] pt-[13.6px] relative w-[360px]">
-        <div className="h-[173px] relative shrink-0 w-full" data-name="Container">
-          {/* Histogram Chart Area */}
-          <div className="absolute h-[173px] left-0 overflow-visible top-0 w-full">
+      <div className="size-full">
+        <svg width="100%" height="100%" viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}>
+          <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
             {/* Y-axis labels */}
-            <div className="absolute left-[0px] top-[5px]">
-              <p className="font-['Arimo:Regular',sans-serif] text-[10px] text-gray-600">100</p>
-            </div>
-            <div className="absolute left-[5px] top-[50px]">
-              <p className="font-['Arimo:Regular',sans-serif] text-[10px] text-gray-600">50</p>
-            </div>
-            <div className="absolute left-[10px] top-[95px]">
-              <p className="font-['Arimo:Regular',sans-serif] text-[10px] text-gray-600">0</p>
-            </div>
+            {yScale.ticks(5).map(tickValue => (
+              <g key={tickValue} transform={`translate(0, ${yScale(tickValue)})`}>
+                <text x="-5" y="3" textAnchor="end" className="text-[8px] fill-gray-600 font-sans">
+                  {tickValue}°
+                </text>
+                <line x1="0" x2={CHART_WIDTH} stroke={tickValue === 0 ? "#888" : "#EEE"} strokeWidth={tickValue === 0 ? 1 : 0.5} />
+              </g>
+            ))}
             
             {/* X-axis labels */}
-            <div className="absolute left-[70px] top-[118px]">
-              <p className="font-['Arimo:Regular',sans-serif] text-[10px] text-gray-600">-2°</p>
-            </div>
-            <div className="absolute left-[135px] top-[118px]">
-              <p className="font-['Arimo:Regular',sans-serif] text-[10px] text-gray-600">0°</p>
-            </div>
-            <div className="absolute left-[200px] top-[118px]">
-              <p className="font-['Arimo:Regular',sans-serif] text-[10px] text-gray-600">2°</p>
-            </div>
-            <div className="absolute left-[265px] top-[118px]">
-              <p className="font-['Arimo:Regular',sans-serif] text-[10px] text-gray-600">4°</p>
-            </div>
-            
-            {/* Grid Lines */}
-            <div className="absolute left-[28px] top-[5px] right-[10px] bottom-[50px]">
-              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 263 110">
-                <g>
-                  <path d="M0 109.5H263" stroke="#CCCCCC" strokeDasharray="3 3" />
-                  <path d="M0 55H263" stroke="#CCCCCC" strokeDasharray="3 3" />
-                  <path d="M0 0.5H263" stroke="#CCCCCC" strokeDasharray="3 3" />
-                </g>
-              </svg>
-            </div>
-            
-            {/* Sample Bars */}
-            <div className="absolute left-[28px] top-[10px] right-[10px] bottom-[60px]">
-              <svg viewBox="0 0 270 104" className="block size-full">
-                {/*
-                  *** NOTE IMPORTANTE ***
-                  Ces barres <rect> sont STATIQUES (maquette Figma).
-                  Pour que l'histogramme soit dynamique, vous devrez :
-                  1. Calculer la distribution des anomalies pour 'yearData' (données de l'année en cours).
-                  2. Remplacer ces <rect> statiques par des barres générées
-                     dynamiquement (ex: en bouclant sur vos données de distribution).
-                */}
-                <rect x="5" y="20" width="38" height="83.55" fill="#3B82F6" />
-                <rect x="53" y="10" width="38" height="93.55" fill="#3B82F6" />
-                <rect x="101" y="30" width="38" height="73.55" fill="#3B82F6" />
-                <rect x="149" y="5" width="38" height="98.55" fill="#3B82F6" />
-                <rect x="197" y="15" width="38" height="88.55" fill="#3B82F6" />
-              </svg>
-            </div>
-          </div>
-          
-          {/* Legend */}
-          <div className="absolute h-[24px] left-[103.63px] top-[144px] w-[145.738px]">
-            <div className="absolute left-0 size-[14px] top-[7.4px]">
-              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                <path d="M0 1.75H14V12.25H0V1.75Z" fill="#3B82F6" />
-              </svg>
-            </div>
-            <div className="absolute content-stretch flex h-[21.6px] items-start left-[18px] top-[0.8px] w-[127.738px]">
-              {/* 6. Légende rendue dynamique */}
-              <p className="font-['Arimo:Regular',sans-serif] leading-[24px] relative shrink-0 text-[16px] text-blue-500 text-center text-nowrap whitespace-pre">
-                Temperature {currentYear}
-              </p>
-            </div>
-          </div>
-        </div>
+            <text x={CHART_WIDTH / 2} y={CHART_HEIGHT + 35} textAnchor="middle" className="text-[10px] fill-gray-700 font-sans font-bold">
+              Longitude
+            </text>
+            <text transform={`rotate(-90)`} x={-CHART_HEIGHT / 2} y={-MARGIN.left + 10} textAnchor="middle" className="text-[10px] fill-gray-700 font-sans font-bold">
+              Anomaly (°C)
+            </text>
+
+            {/* Barres de l'histogramme */}
+            {histogramData.map(({ lon, meanAnomaly }) => (
+              <rect
+                key={lon}
+                x={xScale(lon.toString())}
+                y={yScale(Math.max(0, meanAnomaly))}
+                width={xScale.bandwidth()}
+                height={Math.abs(yScale(meanAnomaly) - yScale(0))}
+                fill={meanAnomaly > 0 ? "#F97316" : "#2563EB"}
+              />
+            ))}
+          </g>
+        </svg>
+      </div>
+      {/* Légende */}
+      <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center">
+        <p className="font-sans text-sm text-gray-700">
+          Anomaly vs Longitude for {currentYear}
+        </p>
       </div>
     </div>
   );
