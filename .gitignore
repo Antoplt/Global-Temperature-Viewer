@@ -1,6 +1,5 @@
 # Depencies
 node_modules/
-package.json
 
 # Build outputs
 dist/
