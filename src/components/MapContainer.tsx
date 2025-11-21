@@ -119,81 +119,70 @@ export const MapContainer: React.FC = () => {
         centerOnInit={true}
         wheel={{ step: 0.1 }} // Vitesse du zoom molette
       >
-        {({ zoomIn, zoomOut, resetTransform }) => (
-          <>
-            {/* Outils de contrôle (Optionnel) */}
-            <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
-              <button onClick={() => zoomIn()} className="bg-white p-2 rounded shadow">+</button>
-              <button onClick={() => zoomOut()} className="bg-white p-2 rounded shadow">-</button>
-              <button onClick={() => resetTransform()} className="bg-white p-2 rounded shadow">Reset</button>
-            </div>
+        <TransformComponent 
+          wrapperClass="w-full h-full" 
+          contentClass="w-full h-full"
+          wrapperStyle={{ width: "100%", height: "100%" }}
+          contentStyle={{ width: "100%", height: "100%" }}
+        >
+          
+          <svg 
+            ref={svgRef} 
+            onClick={handleMapClick}
+            onMouseDown={handleMouseDown} 
+            onMouseMove={handleMouseMove} 
+            onMouseUp={handleMouseUp} 
+            onMouseLeave={handleMouseLeave}
+            viewBox="0 0 1200 600" 
+            className={`w-full h-full block ${selectionMode !== 'none' ? 'cursor-crosshair' : ''}`} 
+            preserveAspectRatio="xMidYMid meet" 
+          >
+            {/* Remplacement des zones dessinées par l'image SVG */}
+            <image href="/earth.svg" x="0" y="0" width="1200" height="550" preserveAspectRatio="none" />
 
-            <TransformComponent 
-              wrapperClass="w-full h-full" 
-              contentClass="w-full h-full"
-              wrapperStyle={{ width: "100%", height: "100%" }}
-              contentStyle={{ width: "100%", height: "100%" }}
-            >
-              
-              <svg 
-                ref={svgRef} 
-                onClick={handleMapClick}
-                onMouseDown={handleMouseDown} 
-                onMouseMove={handleMouseMove} 
-                onMouseUp={handleMouseUp} 
-                onMouseLeave={handleMouseLeave}
-                viewBox="0 0 1200 600" 
-                className={`w-full h-full block ${selectionMode !== 'none' ? 'cursor-crosshair' : ''}`} 
-                preserveAspectRatio="xMidYMid meet" 
-              >
-                {/* Remplacement des zones dessinées par l'image SVG */}
-                <image href="/earth.svg" x="0" y="0" width="1200" height="550" preserveAspectRatio="none" />
+            {/* Overlay léger pour l'esthétique (optionnel) */}
+            <rect x="0" y="0" width="1200" height="600" fill="#E0F2FE" opacity="0.1" style={{ mixBlendMode: 'multiply' }} />
 
-                {/* Overlay léger pour l'esthétique (optionnel) */}
-                <rect x="0" y="0" width="1200" height="600" fill="#E0F2FE" opacity="0.1" style={{ mixBlendMode: 'multiply' }} />
+            <g id="latitude-lines">
+              {selectedLatitudes.map((lat) => (
+                <line
+                  key={lat}
+                  x1="0"
+                  y1={latitudeToY(lat)}
+                  x2="1200"
+                  y2={latitudeToY(lat)}
+                  stroke="#EF4444"
+                  strokeWidth="2"
+                  strokeDasharray="5,5"
+                />
+              ))}
+            </g>
 
-                <g id="latitude-lines">
-                  {selectedLatitudes.map((lat) => (
-                    <line
-                      key={lat}
-                      x1="0"
-                      y1={latitudeToY(lat)}
-                      x2="1200"
-                      y2={latitudeToY(lat)}
-                      stroke="#EF4444"
-                      strokeWidth="2"
-                      strokeDasharray="5,5"
-                    />
-                  ))}
-                </g>
-
-                <g id="area-selections">
-                  {selectedAreas.map((area) => {
-                    const props = rectToSvgProps(area);
-                    return (
-                      <rect
-                        key={area.id}
-                        {...props}
-                        fill="rgba(239, 68, 68, 0.2)"
-                        stroke="#EF4444"
-                        strokeWidth="2"
-                      />
-                    );
-                  })}
-                  {currentRect && (
-                    <rect
-                      {...rectToSvgProps(currentRect)}
-                      fill="rgba(59, 130, 246, 0.2)"
-                      stroke="#3B82F6"
-                      strokeWidth="2"
-                      strokeDasharray="4 2"
-                    />
-                  )}
-                </g>
-              </svg>
-            </TransformComponent>
-          </>
-        )}
+            <g id="area-selections">
+              {selectedAreas.map((area) => {
+                const props = rectToSvgProps(area);
+                return (
+                  <rect
+                    key={area.id}
+                    {...props}
+                    fill="rgba(239, 68, 68, 0.2)"
+                    stroke="#EF4444"
+                    strokeWidth="2"
+                  />
+                );
+              })}
+              {currentRect && (
+                <rect
+                  {...rectToSvgProps(currentRect)}
+                  fill="rgba(59, 130, 246, 0.2)"
+                  stroke="#3B82F6"
+                  strokeWidth="2"
+                  strokeDasharray="4 2"
+                />
+              )}
+            </g>
+          </svg>
+        </TransformComponent>
       </TransformWrapper>
     </div>
   );
