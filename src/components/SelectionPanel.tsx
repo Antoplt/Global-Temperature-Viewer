@@ -3,6 +3,7 @@ import React from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { setSelectionMode, removeLatitude, removeArea } from '../slices/selectionSlice';
 import { LINE_COLORS } from './GraphView'; // Importer les couleurs
+import { Map, ScanLine, Move } from 'lucide-react';
 
 export const SelectionPanel: React.FC = () => {
   // 2. Connexion au store Redux
@@ -20,6 +21,17 @@ export const SelectionPanel: React.FC = () => {
       <div aria-hidden="true" className="absolute border-[0.8px] border-gray-200 border-solid inset-0 pointer-events-none rounded-[10px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
       <div className="p-[16.8px]">
         <div className="space-y-[12px]">
+          {/* --- Bouton de sélection Déplacement --- */}
+          <div className="flex items-center gap-[12px]">
+            <div 
+              className={`${baseButtonClass} ${
+                currentMode === 'move' ? activeClass : inactiveClass
+              }`}
+              onClick={() => dispatch(setSelectionMode('move'))} // 4. Action au clic
+            />
+            <p className="font-['Arimo:Regular',sans-serif] text-[16px] text-neutral-950">Move</p>
+          </div>
+
           {/* --- Bouton de sélection Latitude --- */}
           <div className="flex items-center gap-[12px]">
             <div 
