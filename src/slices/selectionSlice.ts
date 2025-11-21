@@ -16,6 +16,7 @@ interface SelectionState {
   selectionMode: SelectionMode;
   selectedLatitudes: number[];
   selectedAreas: SelectionRectangle[];
+  highlightedLon: number | null; // Pour la sélection dans l'histogramme
 }
 
 const initialState: SelectionState = {
@@ -24,6 +25,7 @@ const initialState: SelectionState = {
   selectionMode: 'latitude',
   selectedLatitudes: [],
   selectedAreas: [],
+  highlightedLon: null,
 };
 
 const selectionSlice = createSlice({
@@ -54,8 +56,13 @@ const selectionSlice = createSlice({
         (area) => area.id !== action.payload
       );
     },
+    // Action pour mettre en évidence une longitude
+    setHighlightedLon: (state, action: PayloadAction<number | null>) => {
+      state.highlightedLon = action.payload;
+    },
   },
 });
 
-export const { setSelectionMode, addLatitude, removeLatitude, addArea, removeArea } = selectionSlice.actions;
+export const { setSelectionMode, addLatitude, removeLatitude, addArea, removeArea, setHighlightedLon } =
+  selectionSlice.actions;
 export default selectionSlice.reducer;

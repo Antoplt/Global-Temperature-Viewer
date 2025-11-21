@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 // 1. Import du hook
-import { useAppSelector } from '../hooks/hooks';
+import { useAppSelector, useAppDispatch } from '../hooks/hooks';
 import { scaleBand, scaleLinear } from 'd3-scale';
 import { group, mean } from 'd3-array';
+import { setHighlightedLon } from '../slices/selectionSlice';
 
 // --- Constantes pour les dimensions ---
 const SVG_WIDTH = 360;
@@ -17,9 +18,10 @@ const MAX_TEMP = 2;
 
 export const HistogramView: React.FC = () => {
   // --- Récupération des données depuis le store ---
+  const dispatch = useAppDispatch();
   const { allData, status } = useAppSelector((state) => state.data);
   const currentYear = useAppSelector((state) => state.controls.currentYear);
-  const { selectedLatitudes, selectionMode } = useAppSelector((state) => state.selection);
+  const { selectedLatitudes, highlightedLon } = useAppSelector((state) => state.selection);
 
   // --- Calcul des données pour l'histogramme (mémoïsé) ---
   const histogramData = useMemo(() => {
@@ -63,6 +65,15 @@ export const HistogramView: React.FC = () => {
     .domain([MIN_TEMP, MAX_TEMP])
     .range([CHART_HEIGHT, 0]);
 
+  const handleBarClick = (lon: number) => {
+    // Si on clique sur la barre déjà sélectionnée, on la désélectionne.
+    // Sinon, on la sélectionne.
+    if (highlightedLon === lon) {
+      dispatch(setHighlightedLon(null));
+    } else {
+      dispatch(setHighlightedLon(lon));
+    }
+  };
   // Si aucune latitude n'est sélectionnée, on affiche un message d'aide.
   if (selectedLatitudes.length === 0) {
     return (
@@ -98,16 +109,23 @@ export const HistogramView: React.FC = () => {
             </text>
 
             {/* Barres de l'histogramme */}
-            {histogramData.map(({ lon, meanAnomaly }) => (
-              <rect
-                key={lon}
-                x={xScale(lon.toString())}
-                y={yScale(Math.max(0, meanAnomaly))}
-                width={xScale.bandwidth()}
-                height={Math.abs(yScale(meanAnomaly) - yScale(0))}
-                fill={meanAnomaly > 0 ? "#F97316" : "#2563EB"}
-              />
-            ))}
+            {histogramData.map(({ lon, meanAnomaly }) => {
+              const isHighlighted = lon === highlightedLon;
+              return (
+                <rect
+                  key={lon}
+                  x={xScale(lon.toString())}
+                  y={yScale(Math.max(0, meanAnomaly))}
+                  width={xScale.bandwidth()}
+                  height={Math.abs(yScale(meanAnomaly) - yScale(0))}
+                  fill={meanAnomaly > 0 ? "#F97316" : "#2563EB"}
+                  onClick={() => handleBarClick(lon)}
+                  className="cursor-pointer"
+                  stroke={isHighlighted ? '#0A0A0A' : 'none'}
+                  strokeWidth={isHighlighted ? 2 : 0}
+                />
+              );
+            })}
           </g>
         </svg>
       </div>

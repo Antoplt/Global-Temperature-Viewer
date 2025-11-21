@@ -13,7 +13,7 @@ export const MapContainer: React.FC = () => {
   const [currentRect, setCurrentRect] = useState<SelectionRectangle | null>(null);
 
   // Récupération des états depuis le store
-  const { selectionMode, selectedLatitudes, selectedAreas } = useAppSelector((state) => state.selection);
+  const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon } = useAppSelector((state) => state.selection);
 
   // --- Fonctions de conversion de coordonnées ---
   const latitudeToY = (lat: number): number => {
@@ -190,6 +190,27 @@ export const MapContainer: React.FC = () => {
                     />
                   )}
                 </g>
+
+                {/* --- Surbrillance de la longitude depuis l'histogramme --- */}
+                {highlightedLon !== null && selectedLatitudes.length > 0 && (() => {
+                  const minLat = Math.min(...selectedLatitudes);
+                  const maxLat = Math.max(...selectedLatitudes);
+                  // La zone de données fait 4° de large
+                  const lonWidth = 4; 
+
+                  return (
+                    <rect
+                      x={longitudeToX(highlightedLon - lonWidth / 2)}
+                      y={latitudeToY(maxLat + lonWidth / 2)}
+                      width={longitudeToX(highlightedLon + lonWidth / 2) - longitudeToX(highlightedLon - lonWidth / 2)}
+                      height={latitudeToY(minLat - lonWidth / 2) - latitudeToY(maxLat + lonWidth / 2)}
+                      fill="rgba(255, 255, 0, 0.4)"
+                      stroke="rgba(255, 200, 0, 1)"
+                      strokeWidth="2"
+                      className="pointer-events-none"
+                    />
+                  );
+                })()}
               </svg>
             </TransformComponent>
           </>
