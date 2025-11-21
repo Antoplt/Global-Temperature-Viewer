@@ -1,0 +1,13 @@
+# Depencies
+node_modules/
+package.json
+
+# Build outputs
+dist/
+
+# Logs
+logs/
+
+# OS generated files
+.DS_Store
+node_modules
