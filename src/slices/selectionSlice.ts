@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 // Types pour les sélections
-export type SelectionMode = 'latitude' | 'area' | 'none';
+export type SelectionMode = 'latitude' | 'area' | 'move';
 
 // Définition d'un rectangle de sélection
 export interface SelectionRectangle {
@@ -22,7 +22,7 @@ interface SelectionState {
 const initialState: SelectionState = {
   // Le mode par défaut est 'latitude' comme dans votre version précédente
   // mais nous allons le rendre compatible avec 'area'
-  selectionMode: 'latitude',
+  selectionMode: 'move',
   selectedLatitudes: [],
   selectedAreas: [],
   highlightedLon: null,

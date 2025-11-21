@@ -100,6 +100,7 @@ export const MapContainer: React.FC = () => {
   };
 
   const handleMapClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (selectionMode === 'move') return;
     if (selectionMode === 'latitude') {
       const point = getPointInSvg(event);
       if (!point) return;
@@ -118,6 +119,7 @@ export const MapContainer: React.FC = () => {
         maxScale={8}
         centerOnInit={true}
         wheel={{ step: 0.1 }} // Vitesse du zoom molette
+        disabled={selectionMode !== 'move'}
       >
         <TransformComponent 
           wrapperClass="w-full h-full" 
@@ -134,7 +136,7 @@ export const MapContainer: React.FC = () => {
             onMouseUp={handleMouseUp} 
             onMouseLeave={handleMouseLeave}
             viewBox="0 0 1200 600" 
-            className={`w-full h-full block ${selectionMode !== 'none' ? 'cursor-crosshair' : ''}`} 
+            className={`w-full h-full block ${selectionMode !== 'move' ? 'cursor-crosshair' : ''}`} 
             preserveAspectRatio="xMidYMid meet" 
           >
             {/* Remplacement des zones dessinées par l'image SVG */}
