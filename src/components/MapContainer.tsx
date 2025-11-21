@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { addLatitude, addArea, SelectionRectangle } from '../slices/selectionSlice';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"; // Import
+import { LINE_COLORS } from './GraphView'; // Importer les couleurs
 
 export const MapContainer: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -144,44 +145,33 @@ export const MapContainer: React.FC = () => {
             <rect x="0" y="0" width="1200" height="600" fill="#E0F2FE" opacity="0.1" style={{ mixBlendMode: 'multiply' }} />
 
             <g id="latitude-lines">
-              {selectedLatitudes.map((lat) => (
+              {selectedLatitudes.map((lat, index) => (
                 <line
                   key={lat}
                   x1="0"
                   y1={latitudeToY(lat)}
                   x2="1200"
                   y2={latitudeToY(lat)}
-                  stroke="#EF4444"
+                  stroke={LINE_COLORS[index % LINE_COLORS.length]}
                   strokeWidth="2"
                   strokeDasharray="5,5"
                 />
               ))}
             </g>
 
-                <g id="latitude-lines">
-                  {selectedLatitudes.map((lat) => (
-                    <line
-                      key={lat}
-                      x1="0"
-                      y1={latitudeToY(lat)}
-                      x2="1200"
-                      y2={latitudeToY(lat)}
-                      stroke="#EF4444"
-                      strokeWidth="2"
-                      strokeDasharray="5,5"
-                    />
-                  ))}
-                </g>
-
                 <g id="area-selections">
-                  {selectedAreas.map((area) => {
+                  {selectedAreas.map((area, index) => {
                     const props = rectToSvgProps(area);
+                    const color = LINE_COLORS[index % LINE_COLORS.length];
+                    // Convertir la couleur hexadécimale en RGBA pour le remplissage
+                    const fillColor = `rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 0.2)`;
+
                     return (
                       <rect
                         key={area.id}
                         {...props}
-                        fill="rgba(239, 68, 68, 0.2)"
-                        stroke="#EF4444"
+                        fill={fillColor}
+                        stroke={color}
                         strokeWidth="2"
                       />
                     );

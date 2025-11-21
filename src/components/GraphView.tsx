@@ -18,7 +18,7 @@ const MIN_TEMP = -1.5;
 const MAX_TEMP = 1.5;
 
 // --- Couleurs pour les différentes courbes ---
-const LINE_COLORS = ["#DC2626", "#2563EB", "#F97316", "#16A34A", "#9333EA"];
+export const LINE_COLORS = ["#DC2626", "#2563EB", "#F97316", "#16A34A", "#9333EA"];
 
 export const GraphView: React.FC = () => {
   // --- Récupération des données depuis le store Redux ---

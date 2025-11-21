@@ -2,6 +2,7 @@ import React from 'react';
 // 1. Imports corrigés depuis les bons dossiers
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { setSelectionMode, removeLatitude, removeArea } from '../slices/selectionSlice';
+import { LINE_COLORS } from './GraphView'; // Importer les couleurs
 
 export const SelectionPanel: React.FC = () => {
   // 2. Connexion au store Redux
@@ -48,9 +49,13 @@ export const SelectionPanel: React.FC = () => {
           <hr className="border-t border-gray-300 mx-[16.8px]" />
           <div className="p-[16.8px] space-y-2 overflow-y-auto">
             <p className="font-['Arimo:Bold',sans-serif] text-sm text-gray-600">Selected Latitudes:</p>
-            {selectedLatitudes.map(lat => (
+            {selectedLatitudes.map((lat, index) => (
               <div key={lat} className="flex items-center justify-between text-sm">
-                <span>{lat}° {lat > 0 ? 'N' : lat < 0 ? 'S' : ''}</span>
+                <span
+                  style={{ color: LINE_COLORS[index % LINE_COLORS.length], fontWeight: 'bold' }}
+                >
+                  {lat}° {lat > 0 ? 'N' : lat < 0 ? 'S' : ''}
+                </span>
                 <button
                   onClick={() => dispatch(removeLatitude(lat))}
                   className="font-bold text-red-500 hover:text-red-700 text-lg leading-none px-2"
@@ -69,9 +74,16 @@ export const SelectionPanel: React.FC = () => {
           <hr className="border-t border-gray-300 mx-[16.8px]" />
           <div className="p-[16.8px] space-y-2 overflow-y-auto">
             <p className="font-['Arimo:Bold',sans-serif] text-sm text-gray-600">Selected Areas:</p>
-            {selectedAreas.map(area => (
+            {selectedAreas.map((area, index) => (
               <div key={area.id} className="flex items-center justify-between text-sm">
-                <span>Area {selectedAreas.indexOf(area) + 1}</span>
+                <div className="flex items-center gap-2">
+                  {/* Indicateur de couleur */}
+                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: LINE_COLORS[index % LINE_COLORS.length] }} />
+                  {/* Le texte est maintenant coloré et en gras */}
+                  <span style={{ color: LINE_COLORS[index % LINE_COLORS.length], fontWeight: 'bold' }}>
+                    Area {index + 1}
+                  </span>
+                </div>
                 <button
                   onClick={() => dispatch(removeArea(area.id))}
                   className="font-bold text-red-500 hover:text-red-700 text-lg leading-none px-2"
