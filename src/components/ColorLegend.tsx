@@ -3,7 +3,7 @@ import React from 'react';
 // 1. Suppression de 'HeatmapViewProps' et de la prop '{ data }'
 export const ColorLegend: React.FC = () => {
   return (
-    <div className="bg-[rgba(255,255,255,0.95)] h-[157.6px] rounded-[10px] w-[128.425px]" data-name="ColorLegend">
+    <div className="bg-[rgba(255,255,255,0.95)] h-[150px] rounded-[10px] w-[128.425px]" data-name="ColorLegend">
       <div aria-hidden="true" className="absolute border-[0.8px] border-gray-200 border-solid inset-0 pointer-events-none rounded-[10px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
       <div className="p-[12.8px]">
         {/* Color Legend Items */}
