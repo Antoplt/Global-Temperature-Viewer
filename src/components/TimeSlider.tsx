@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface TimeSliderProps {
   currentYear: number;
@@ -9,6 +9,29 @@ const MIN_YEAR = 1880;
 const MAX_YEAR = 2024; // Mettez ici l'année max de vos données
 
 export const TimeSlider: React.FC<TimeSliderProps> = ({ currentYear, onYearChange }) => {
+  const [inputValue, setInputValue] = useState(currentYear.toString());
+
+  // Mettre à jour la valeur du champ si l'année change depuis l'extérieur (ex: slider)
+  useEffect(() => {
+    setInputValue(currentYear.toString());
+  }, [currentYear]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      const newYear = parseInt(inputValue, 10);
+
+      // Valide que la valeur est un nombre et dans la plage autorisée
+      if (!isNaN(newYear) && newYear >= MIN_YEAR && newYear <= MAX_YEAR) {
+        onYearChange(newYear);
+      } else {
+        // Si invalide, réinitialise à l'année actuelle
+        setInputValue(currentYear.toString());
+      }
+      // Optionnel: retire le focus du champ après la soumission
+      event.currentTarget.blur();
+    }
+  };
+
   return (
     <div className="content-stretch flex gap-[16px] h-[35.2px] items-center" data-name="Container">
       {/* YEAR Label */}
@@ -25,9 +48,16 @@ export const TimeSlider: React.FC<TimeSliderProps> = ({ currentYear, onYearChang
           {/* Year Display */}
           <div className="absolute h-[35.2px] left-0 top-0 w-[80px]" data-name="Container">
             <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none" />
-            <p className="absolute font-['Arimo:Regular',sans-serif] leading-[24px] left-[39.75px] text-[16px] text-center text-neutral-950 text-nowrap top-[3.4px] translate-x-[-50%] whitespace-pre">
-              {currentYear}
-            </p>
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={() => setInputValue(currentYear.toString())} // Réinitialise si on quitte le champ sans valider
+              className="w-full h-full bg-transparent text-center font-['Arimo:Regular',sans-serif] text-[16px] text-neutral-950 focus:outline-none"
+              // Ajout de `aria-label` pour l'accessibilité
+              aria-label="Year input, press Enter to submit"
+            />
           </div>
 
           {/* --- SLIDER AVEC CLASSES CORRIGÉES --- */}
