@@ -7,7 +7,7 @@ import { MapContainer } from './components/MapContainer';
 import { SelectionPanel } from './components/SelectionPanel';
 import { GraphView } from './components/GraphView';
 import { HistogramView } from './components/HistogramView';
-import { HeatmapView } from './components/HeatmapView';
+import { ColorLegend } from './components/ColorLegend';
 import { Toolbar } from './components/Toolbar';
 
 function AppContent() {
@@ -72,7 +72,7 @@ function AppContent() {
         {showHeatmap && ( 
            <div className="absolute bottom-[110px] left-4 pointer-events-auto">
              {/* prop 'data' SUPPRIMÉE */}
-             <HeatmapView />
+             <ColorLegend />
            </div>
         )}
 

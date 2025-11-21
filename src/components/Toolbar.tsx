@@ -21,6 +21,7 @@ export const Toolbar: React.FC = () => {
   const speed = useAppSelector((state) => state.controls.animationSpeed);
   const showGraph = useAppSelector((state) => state.layout.visibleViews.graph);
   const showHistogram = useAppSelector((state) => state.layout.visibleViews.histogram);
+  const showHeatmap = useAppSelector((state) => state.layout.visibleViews.heatmap);
 
   // --- AJOUT : Mémorise l'année de départ de l'animation ---
   const animationStartYearRef = useRef(currentYear);
@@ -81,6 +82,10 @@ export const Toolbar: React.FC = () => {
     dispatch(toggleView('histogram'));
   };
 
+  const handleToggleHeatmap = () => {
+    dispatch(toggleView('heatmap'));
+  };
+
   return (
     // --- CHANGEMENT 1 : max-w-[1000px] -> max-w-[1200px] ---
     <div className="bg-[rgba(255,255,255,0.95)] h-[69.6px] relative rounded-[10px] w-full max-w-[1200px] mx-auto">
@@ -110,8 +115,10 @@ export const Toolbar: React.FC = () => {
             <ViewToggles
               showGraph={showGraph}
               showHistogram={showHistogram}
+              showHeatmap={showHeatmap}
               onToggleGraph={handleToggleGraph}
               onToggleHistogram={handleToggleHistogram}
+              onToggleHeatmap={handleToggleHeatmap}
             />
           </div>
         </div>
