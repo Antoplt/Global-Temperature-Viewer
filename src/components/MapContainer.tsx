@@ -4,13 +4,6 @@ import { addLatitude, addArea, SelectionRectangle } from '../slices/selectionSli
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"; 
 import { LINE_COLORS } from './GraphView'; 
 
-// --- Configuration des Couleurs (basée sur ColorLegend) ---
-// bg-blue-600: #2563eb (< -0.5)
-// bg-blue-400: #60a5fa (-0.5 à 0)
-// bg-amber-400: #fbbf24 (0 à 0.5)
-// bg-orange-500: #f97316 (0.5 à 1.0)
-// bg-red-600: #dc2626 (> 1.0)
-
 const getColorForAnomaly = (anomaly: number): string => {
   if (anomaly < -0.5) return '#2563eb';
   if (anomaly < 0) return '#60a5fa';
