@@ -24,11 +24,23 @@ export const TimeSlider: React.FC<TimeSliderProps> = ({ currentYear, onYearChang
           
           {/* Year Display */}
           <div className="absolute h-[35.2px] left-0 top-0 w-[80px]" data-name="Container">
+            {/* Bordure décorative (inchangée) */}
             <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none" />
-            <p className="absolute font-['Arimo:Regular',sans-serif] leading-[24px] left-[39.75px] text-[16px] text-center text-neutral-950 text-nowrap top-[3.4px] translate-x-[-50%] whitespace-pre">
-              {currentYear}
-            </p>
-          </div>
+              <input 
+                type='text' 
+                className="absolute inset-0 w-full h-full bg-transparent border-none outline-none text-center font-['Arimo:Regular',sans-serif] text-[16px] text-neutral-950"
+                value={currentYear}
+                onChange={(e) => onYearChange(Number(e.target.value))}
+                onBlur={
+                  (e) => {
+                    if (currentYear < MIN_YEAR) {
+                      onYearChange(MIN_YEAR);
+                    } else if (MAX_YEAR < currentYear) {
+                      onYearChange(MAX_YEAR);
+                  }
+                }}
+              />
+            </div>
 
           {/* --- SLIDER AVEC CLASSES CORRIGÉES --- */}
           <div className="absolute h-[16px] left-[88px] top-[9.6px] w-full flex items-center pr-4"> {/* Ajustement du conteneur */}
