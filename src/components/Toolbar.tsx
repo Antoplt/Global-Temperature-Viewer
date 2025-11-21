@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks'; // Chemin corrigé
 import { 
   setCurrentYear, 
@@ -10,6 +10,9 @@ import { TimeSlider } from './TimeSlider';
 import { AnimationControls } from './AnimationControls';
 import { ViewToggles } from './ViewToggles';
 
+const MIN_YEAR = 1880;
+const MAX_YEAR = 2024;
+
 export const Toolbar: React.FC = () => {
   const dispatch = useAppDispatch();
   
@@ -19,20 +22,51 @@ export const Toolbar: React.FC = () => {
   const showGraph = useAppSelector((state) => state.layout.visibleViews.graph);
   const showHistogram = useAppSelector((state) => state.layout.visibleViews.histogram);
 
+  // --- AJOUT : Mémorise l'année de départ de l'animation ---
+  const animationStartYearRef = useRef(currentYear);
+
+  // --- AJOUT : Logique de l'animation ---
+  useEffect(() => {
+    // Si isPlaying est false, on ne fait rien.
+    if (!isPlaying) {
+      return;
+    }
+
+    // Calcule l'intervalle en millisecondes basé sur la vitesse.
+    // Vitesse 1 = 1s, Vitesse 2 = 0.5s, etc.
+    const interval = 1000 / speed;
+
+    const timer = setInterval(() => {
+      dispatch(setCurrentYear(currentYear >= MAX_YEAR ? MIN_YEAR : currentYear + 1));
+    }, interval);
+
+    // Fonction de nettoyage : elle est appelée quand le composant est démonté
+    // ou quand les dépendances (isPlaying, speed) changent.
+    // C'est crucial pour éviter les fuites de mémoire et les bugs.
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isPlaying, speed, currentYear, dispatch]); // Dépendances de l'effet
+
   const handleYearChange = (year: number) => {
     dispatch(setCurrentYear(year));
   };
 
   const handlePlay = () => {
+    // Si on n'est pas en train de jouer, on mémorise l'année actuelle comme point de départ.
+    if (!isPlaying) {
+      animationStartYearRef.current = currentYear;
+    }
     dispatch(togglePlaying());
   };
 
   const handlePause = () => {
+    // La même action inverse l'état isPlaying
     dispatch(togglePlaying());
   };
 
   const handleRestart = () => {
-    dispatch(setCurrentYear(1880)); // Assurez-vous que c'est bien votre MIN_YEAR
+    dispatch(setCurrentYear(animationStartYearRef.current));
   };
 
   const handleSpeedChange = (newSpeed: number) => {
