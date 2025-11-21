@@ -3,7 +3,6 @@ import React from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { setSelectionMode, removeLatitude, removeArea } from '../slices/selectionSlice';
 import { LINE_COLORS } from './GraphView'; // Importer les couleurs
-import { Map, ScanLine, Move } from 'lucide-react';
 
 export const SelectionPanel: React.FC = () => {
   // 2. Connexion au store Redux
