@@ -1,15 +1,50 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { addLatitude, addArea, SelectionRectangle } from '../slices/selectionSlice';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"; 
 import { LINE_COLORS } from './GraphView'; 
 
-const getColorForAnomaly = (anomaly: number): string => {
-  if (anomaly < -0.5) return '#2563eb';
-  if (anomaly < 0) return '#60a5fa';
-  if (anomaly < 0.5) return '#fbbf24';
-  if (anomaly < 1.0) return '#f97316';
-  return '#dc2626';
+// --- Configuration de la Palette Continue (Basée sur Tailwind) ---
+// Nous définissons des "points d'arrêt" (stops) pour l'interpolation.
+// Les valeurs RGB correspondent aux classes Tailwind fournies.
+const COLOR_STOPS = [
+  { val: -2.5, color: { r: 37, g: 99, b: 235 } },   // bg-blue-600 (Extrême froid)
+  { val: -0.5, color: { r: 96, g: 165, b: 250 } },  // bg-blue-400
+  { val: 0,    color: { r: 255, g: 255, b: 255 } }, // Blanc (Neutre)
+  { val: 0.5,  color: { r: 251, g: 191, b: 36 } },  // bg-amber-400
+  { val: 1.0,  color: { r: 249, g: 115, b: 22 } },  // bg-orange-500
+  { val: 2.5,  color: { r: 220, g: 38, b: 38 } },   // bg-red-600 (Extrême chaud)
+];
+
+// Fonction utilitaire pour interpoler linéairement entre deux couleurs RGB
+const getContinuousColor = (value: number) => {
+  // On contraint la valeur dans les bornes de notre échelle
+  const val = Math.max(-2.5, Math.min(2.5, value));
+  
+  // Trouver les deux stops qui encadrent la valeur
+  let lower = COLOR_STOPS[0];
+  let upper = COLOR_STOPS[COLOR_STOPS.length - 1];
+
+  for (let i = 0; i < COLOR_STOPS.length - 1; i++) {
+    if (val >= COLOR_STOPS[i].val && val <= COLOR_STOPS[i+1].val) {
+      lower = COLOR_STOPS[i];
+      upper = COLOR_STOPS[i+1];
+      break;
+    }
+  }
+
+  // Si on tombe pile sur un stop
+  if (lower === upper) return `rgb(${lower.color.r}, ${lower.color.g}, ${lower.color.b})`;
+
+  // Calcul du pourcentage de progression entre les deux stops (0 à 1)
+  const t = (val - lower.val) / (upper.val - lower.val);
+  
+  // Mélange des couleurs (Lerp)
+  const r = Math.round(lower.color.r + (upper.color.r - lower.color.r) * t);
+  const g = Math.round(lower.color.g + (upper.color.g - lower.color.g) * t);
+  const b = Math.round(lower.color.b + (upper.color.b - lower.color.b) * t);
+
+  return `rgb(${r}, ${g}, ${b})`;
 };
 
 export const MapContainer: React.FC = () => {
@@ -27,26 +62,11 @@ export const MapContainer: React.FC = () => {
   const { allData, status } = useAppSelector((state) => state.data);
   const { currentYear } = useAppSelector((state) => state.controls);
 
-  // --- Helpers de Conversion de Coordonnées ---
-  // Carte de 1200x600 pour lat [-90, 90] et lon [-180, 180]
-  
-  const longitudeToX = (lon: number): number => {
-    return ((lon + 180) / 360) * 1200;
-  };
-
-  const xToLongitude = (x: number): number => {
-    return (x / 1200) * 360 - 180;
-  };
-
-  const latitudeToY = (lat: number): number => {
-    // Attention : Y augmente vers le bas, Lat augmente vers le haut.
-    // 90° lat = 0y, -90° lat = 600y
-    return ((90 - lat) / 180) * 600;
-  };
-
-  const yToLatitude = (y: number): number => {
-    return 90 - (y / 600) * 180;
-  };
+  // --- Helpers de Conversion de Coordonnées (Logique 1200x600) ---
+  const longitudeToX = (lon: number): number => ((lon + 180) / 360) * 1200;
+  const xToLongitude = (x: number): number => (x / 1200) * 360 - 180;
+  const latitudeToY = (lat: number): number => ((90 - lat) / 180) * 600;
+  const yToLatitude = (y: number): number => 90 - (y / 600) * 180;
 
   // --- Dessin de la Heatmap (Canvas) ---
   useEffect(() => {
@@ -56,7 +76,6 @@ export const MapContainer: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 1. Filtrer les données pour l'année en cours
     const yearData = allData.filter((d) => d.year === currentYear);
 
     if (yearData.length === 0) {
@@ -64,10 +83,7 @@ export const MapContainer: React.FC = () => {
       return;
     }
 
-    // 2. Création d'un canvas "tampon" (offscreen) de petite taille
-    // La grille est de 4°x4°.
-    // Largeur grille : 360 / 4 = 90 cellules
-    // Hauteur grille : 180 / 4 = 45 cellules
+    // 1. Création d'un petit canvas "tampon" correspondant à la grille de données (90x45 pour 4°x4°)
     const gridWidth = 90;
     const gridHeight = 45;
     
@@ -78,43 +94,32 @@ export const MapContainer: React.FC = () => {
 
     if (!offCtx) return;
 
-    // Remplir le petit canvas. Chaque pixel correspond à une cellule 4x4.
+    // 2. Remplissage pixel par pixel avec la couleur interpolée
+    // Chaque pixel représente une zone de 4°x4°
     yearData.forEach((point) => {
-      // Mapping Lat/Lon vers coordonnées de la grille (0..89, 0..44)
-      // Lon -180 => x=0, Lon 180 => x=90
-      // Lat 90 => y=0, Lat -90 => y=45
-      
-      // On centre le point dans sa cellule pour trouver l'index
       const px = Math.floor((point.lon + 180) / 4);
       const py = Math.floor((90 - point.lat) / 4);
 
-      offCtx.fillStyle = getColorForAnomaly(point.anomaly);
+      // C'est ici que la magie opère : on utilise la couleur continue
+      offCtx.fillStyle = getContinuousColor(point.anomaly);
       offCtx.fillRect(px, py, 1, 1);
     });
 
-    // 3. Dessiner le petit canvas étiré sur le grand canvas (1200x600)
-    // L'interpolation du navigateur va créer le flou (dégradé) entre les pixels
+    // 3. Dessin final étiré (l'interpolation bilinéaire du navigateur crée le flou)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // On applique une opacité globale pour voir la carte dessous
-    ctx.globalAlpha = 0.6; 
-    
-    // Astuce : dessiner l'image étirée
+    ctx.globalAlpha = 0.6; // Transparence pour voir la carte en dessous
     ctx.drawImage(offCanvas, 0, 0, gridWidth, gridHeight, 0, 0, canvas.width, canvas.height);
-    
-    // Reset alpha
     ctx.globalAlpha = 1.0;
 
   }, [allData, currentYear, status]);
 
 
-  // --- Gestion des intéractions (SVG) ---
+  // --- Gestion des interactions (identique à avant) ---
   const getPointInSvg = (event: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return null;
     const svgPoint = svgRef.current.createSVGPoint();
     svgPoint.x = event.clientX;
     svgPoint.y = event.clientY;
-    // Transformation inverse pour prendre en compte le zoom/pan
     return svgPoint.matrixTransform(svgRef.current.getScreenCTM()?.inverse());
   };
 
@@ -123,7 +128,6 @@ export const MapContainer: React.FC = () => {
     event.preventDefault();
     const point = getPointInSvg(event);
     if (!point) return;
-
     setIsDrawing(true);
     setStartPoint({ x: point.x, y: point.y });
   };
@@ -171,10 +175,7 @@ export const MapContainer: React.FC = () => {
       const point = getPointInSvg(event);
       if (!point) return;
       const clickedLat = yToLatitude(point.y);
-      // Clamp latitude
-      if (clickedLat >= -90 && clickedLat <= 90) {
-        dispatch(addLatitude(clickedLat));
-      }
+      if (clickedLat >= -90 && clickedLat <= 90) dispatch(addLatitude(clickedLat));
     }
   };
 
@@ -197,17 +198,11 @@ export const MapContainer: React.FC = () => {
         disabled={selectionMode !== 'move'}
       >
         <TransformComponent
-          wrapperClass="w-full h-full flex items-center justify-center" // Centrage du contenu
-          contentClass="w-full h-full flex items-center justify-center" 
+          wrapperClass="w-full h-full flex items-center justify-center"
+          contentClass="w-full h-full flex items-center justify-center"
           wrapperStyle={{ width: "100%", height: "100%" }}
           contentStyle={{ width: "100%", height: "100%" }}
         >
-          {/* MODIFICATION : Remplacement des dimensions fixes par du CSS responsive.
-            - width: 100% : prend la largeur disponible.
-            - aspectRatio: '2 / 1' : conserve le ratio de la carte.
-            - maxHeight: '100%' : empêche la carte d'être plus haute que l'écran.
-            - margin: 'auto' : centre la carte si elle est plus petite que le conteneur.
-          */}
           <div style={{ 
             width: '100%', 
             maxWidth: '100%',
@@ -216,34 +211,33 @@ export const MapContainer: React.FC = () => {
             position: 'relative',
             margin: 'auto'
           }}>
-            
-            {/* 1. Image de fond (Carte) */}
+            {/* Image Carte */}
             <img 
               src="/earth.svg" 
               alt="World Map" 
               style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }} 
             />
 
-            {/* 2. Canvas pour les données (Heatmap floutée) */}
+            {/* Canvas Heatmap Continue */}
             <canvas
               ref={canvasRef}
-              width={1200} // Résolution logique interne (doit correspondre aux calculs)
+              width={1200}
               height={600}
               style={{ 
-                width: '100%', // S'adapte au conteneur responsive
+                width: '100%', 
                 height: '100%', 
                 position: 'absolute', 
                 top: 0, 
                 left: 0, 
                 pointerEvents: 'none',
-                imageRendering: 'auto' 
+                imageRendering: 'auto' // Assure le lissage par le navigateur
               }}
             />
 
-            {/* 3. SVG pour les sélections et grilles (au-dessus) */}
+            {/* Couche Interactive SVG */}
             <svg
               ref={svgRef}
-              viewBox="0 0 1200 600" // Coordinate system logique interne
+              viewBox="0 0 1200 600"
               style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
               className={selectionMode !== 'move' ? 'cursor-crosshair' : ''}
               onClick={handleMapClick}
@@ -252,7 +246,7 @@ export const MapContainer: React.FC = () => {
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseLeave}
             >
-              {/* Lignes de latitude sélectionnées */}
+              {/* Lignes Latitude */}
               <g id="latitude-lines">
                 {selectedLatitudes.map((lat, index) => (
                   <line
@@ -268,7 +262,7 @@ export const MapContainer: React.FC = () => {
                 ))}
               </g>
 
-              {/* Zones sélectionnées (Rectangles) */}
+              {/* Zones Sélectionnées */}
               <g id="area-selections">
                 {selectedAreas.map((area, index) => {
                   const group = areaGroups.find(g => g.id === area.groupId);
@@ -287,7 +281,6 @@ export const MapContainer: React.FC = () => {
                   );
                 })}
                 
-                {/* Rectangle en cours de dessin */}
                 {currentRect && (
                   <rect
                     {...rectToSvgProps(currentRect)}
@@ -299,12 +292,11 @@ export const MapContainer: React.FC = () => {
                 )}
               </g>
 
-              {/* Surbrillance Longitude (Barre verticale transparente) */}
+              {/* Highlight Longitude */}
               {highlightedLon !== null && selectedLatitudes.length > 0 && (() => {
                  const minLat = Math.min(...selectedLatitudes);
                  const maxLat = Math.max(...selectedLatitudes);
                  const lonWidth = 4; 
-                 
                  return (
                    <rect 
                      x={longitudeToX(highlightedLon - lonWidth/2)}

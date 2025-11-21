@@ -1,29 +1,45 @@
-import React from 'react';
 
-// 1. Suppression de 'HeatmapViewProps' et de la prop '{ data }'
-export const ColorLegend: React.FC = () => {
+
+export const ColorLegend = () => {
   return (
-    <div className="bg-[rgba(255,255,255,0.95)] h-[150px] rounded-[10px] w-[128.425px]" data-name="ColorLegend">
-      <div aria-hidden="true" className="absolute border-[0.8px] border-gray-200 border-solid inset-0 pointer-events-none rounded-[10px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
-      <div className="p-[12.8px]">
-        {/* Color Legend Items */}
-        <div className="space-y-[12px]">
-          <ColorLegendItem color="bg-blue-600" label="< -0.5°C" />
-          <ColorLegendItem color="bg-blue-400" label="-0.5 to 0°C" />
-          <ColorLegendItem color="bg-amber-400" label="0 to 0.5°C" />
-          <ColorLegendItem color="bg-orange-500" label="0.5 to 1.0°C" />
-          <ColorLegendItem color="bg-red-600" label="> 1.0°C" />
+    <div
+      className="relative bg-[rgba(255,255,255,0.95)] w-[140px] h-[200px] rounded-[10px] p-4"
+    >
+      {/* Bordure */}
+      <div
+        aria-hidden="true"
+        className="absolute border border-gray-200 inset-0 rounded-[10px]
+                   shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]
+                   pointer-events-none"
+      />
+
+      <div className="flex gap-4 h-full items-center">
+        {/* BARRE DU GRADIENT — sans AUCUNE classe bg- */}
+        <div
+          style={{
+            width: "24px",
+            height: "100%",
+            borderRadius: "6px",
+            background: "linear-gradient(to bottom, \
+              #1d4ed8, \
+              #60a5fa, \
+              #ffffff, \
+              #facc15, \
+              #f97316, \
+              #dc2626 \
+            )",
+          }}
+        />
+
+        {/* Graduation */}
+        <div className="flex flex-col justify-between h-full text-[12px] text-neutral-900">
+          <span>-1.0°C</span>
+          <span>-0.5°C</span>
+          <span>0.0°C</span>
+          <span>0.5°C</span>
+          <span>1.0°C</span>
         </div>
       </div>
     </div>
   );
 };
-
-const ColorLegendItem: React.FC<{ color: string; label: string }> = ({ color, label }) => (
-  <div className="content-stretch flex gap-[8px] h-[20px] items-center">
-    <div className={`${color} h-[16px] relative shrink-0 w-[24px]`} />
-    <div className="h-[20px] relative shrink-0">
-      <p className="font-['Arimo:Regular',sans-serif] leading-[20px] text-[14px] text-neutral-950 text-nowrap whitespace-pre">{label}</p>
-    </div>
-  </div>
-);
