@@ -1,45 +1,81 @@
-
+import { useAppSelector } from '../hooks/hooks';
+import { COLOR_STOPS, rgbToHex } from "./colorScale";
 
 export const ColorLegend = () => {
-  return (
-    <div
-      className="relative bg-[rgba(255,255,255,0.95)] w-[140px] h-[200px] rounded-[10px] p-4"
-    >
-      {/* Bordure */}
-      <div
-        aria-hidden="true"
-        className="absolute border border-gray-200 inset-0 rounded-[10px]
-                   shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]
-                   pointer-events-none"
-      />
 
-      <div className="flex gap-4 h-full items-center">
-        {/* BARRE DU GRADIENT — sans AUCUNE classe bg- */}
+  const { minAnomaly, maxAnomaly } = useAppSelector((state) => state.data);
+
+  const color_scale = COLOR_STOPS.map((stop) => {
+    const { r, g, b } = stop.color;
+    return rgbToHex(r, g, b)}
+  ).reverse();
+  console.log(color_scale);
+
+  const degreeScale = COLOR_STOPS
+    .filter((stop) => [0.0, 0.25, 0.5, 0.75, 1.0].includes(stop.t))
+    .map((stop) => {
+      const value = minAnomaly + stop.t * (maxAnomaly - minAnomaly);
+      return `${value.toFixed(1)}°C`;
+    }
+  ).reverse();
+  console.log(degreeScale);
+
+  const backgroundGradient = `linear-gradient(to bottom, ${color_scale.join(", ")})`;
+
+  return (
+    <div className="relative w-[120px] h-[200px]" data-name="colorScale">
+
+      {/* BARRE DE COULEUR */}
+      <div className="absolute h-full">
         <div
           style={{
             width: "24px",
             height: "100%",
-            borderRadius: "6px",
-            background: "linear-gradient(to bottom, \
-              #1d4ed8, \
-              #60a5fa, \
-              #ffffff, \
-              #facc15, \
-              #f97316, \
-              #dc2626 \
-            )",
+            borderRadius: "30px",
+            border: "1px solid #000",
+            background: backgroundGradient,
           }}
         />
-
-        {/* Graduation */}
-        <div className="flex flex-col justify-between h-full text-[12px] text-neutral-900">
-          <span>-1.0°C</span>
-          <span>-0.5°C</span>
-          <span>0.0°C</span>
-          <span>0.5°C</span>
-          <span>1.0°C</span>
-        </div>
       </div>
+    
+      {/* === TICKS (graduations) === */}
+    
+      <div className="absolute" style={{left: '23px', top: '10px', width: '7px'}}>
+        <svg className="w-full h-[1px]" viewBox="0 0 7 1">
+          <line stroke="black" x2="7" y1="0.5" y2="0.5" />
+        </svg>
+      </div>
+    
+      <div className="absolute" style={{left: '23px', top: '55px', width: '7px'}}>
+        <svg className="w-full h-[1px]" viewBox="0 0 7 1">
+          <line stroke="black" x2="7" y1="0.5" y2="0.5" />
+        </svg>
+      </div>
+    
+      <div className="absolute" style={{left: '23px', top: '100px', width: '7px'}}>
+        <svg className="w-full h-[1px]" viewBox="0 0 7 1">
+          <line stroke="black" x2="7" y1="0.5" y2="0.5" />
+        </svg>
+      </div>
+
+      <div className="absolute" style={{left: '23px', top: '145px', width: '7px'}}>
+        <svg className="w-full h-[1px]" viewBox="0 0 7 1">
+          <line stroke="black" x2="7" y1="0.5" y2="0.5" />
+        </svg>
+      </div>
+
+      <div className="absolute" style={{left: '23px', top: '190px', width: '7px'}}>
+        <svg className="w-full h-[1px]" viewBox="0 0 7 1">
+          <line stroke="black" x2="7" y1="0.5" y2="0.5" />
+        </svg>
+      </div>
+    
+      {degreeScale.map((label, index) => (
+        <div key={index} className="absolute" style={{left: '33px', top: `${index * 45}px`, fontSize: '12px'}}>
+          {label}
+        </div>
+      ))}
+    
     </div>
   );
 };

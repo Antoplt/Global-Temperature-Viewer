@@ -3,49 +3,15 @@ import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { addLatitude, addArea, SelectionRectangle } from '../slices/selectionSlice';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"; 
 import { LINE_COLORS } from './GraphView'; 
+import { getTemperatureColor } from './colorScale';
 
-// --- Configuration de la Palette Continue (Basée sur Tailwind) ---
-// Nous définissons des "points d'arrêt" (stops) pour l'interpolation.
-// Les valeurs RGB correspondent aux classes Tailwind fournies.
-const COLOR_STOPS = [
-  { val: -2.5, color: { r: 37, g: 99, b: 235 } },   // bg-blue-600 (Extrême froid)
-  { val: -0.5, color: { r: 96, g: 165, b: 250 } },  // bg-blue-400
-  { val: 0,    color: { r: 255, g: 255, b: 255 } }, // Blanc (Neutre)
-  { val: 0.5,  color: { r: 251, g: 191, b: 36 } },  // bg-amber-400
-  { val: 1.0,  color: { r: 249, g: 115, b: 22 } },  // bg-orange-500
-  { val: 2.5,  color: { r: 220, g: 38, b: 38 } },   // bg-red-600 (Extrême chaud)
-];
+const MAP_WIDTH = 1200;
+const MAP_HEIGHT = 600;
 
-// Fonction utilitaire pour interpoler linéairement entre deux couleurs RGB
-const getContinuousColor = (value: number) => {
-  // On contraint la valeur dans les bornes de notre échelle
-  const val = Math.max(-2.5, Math.min(2.5, value));
-  
-  // Trouver les deux stops qui encadrent la valeur
-  let lower = COLOR_STOPS[0];
-  let upper = COLOR_STOPS[COLOR_STOPS.length - 1];
-
-  for (let i = 0; i < COLOR_STOPS.length - 1; i++) {
-    if (val >= COLOR_STOPS[i].val && val <= COLOR_STOPS[i+1].val) {
-      lower = COLOR_STOPS[i];
-      upper = COLOR_STOPS[i+1];
-      break;
-    }
-  }
-
-  // Si on tombe pile sur un stop
-  if (lower === upper) return `rgb(${lower.color.r}, ${lower.color.g}, ${lower.color.b})`;
-
-  // Calcul du pourcentage de progression entre les deux stops (0 à 1)
-  const t = (val - lower.val) / (upper.val - lower.val);
-  
-  // Mélange des couleurs (Lerp)
-  const r = Math.round(lower.color.r + (upper.color.r - lower.color.r) * t);
-  const g = Math.round(lower.color.g + (upper.color.g - lower.color.g) * t);
-  const b = Math.round(lower.color.b + (upper.color.b - lower.color.b) * t);
-
-  return `rgb(${r}, ${g}, ${b})`;
-};
+const lonToX = (lon: number) => ((lon + 180) / 360) * MAP_WIDTH;
+const latToY = (lat: number) => ((90 - lat) / 180) * MAP_HEIGHT;
+const xToLon = (x: number) => (x / MAP_WIDTH) * 360 - 180;
+const yToLat = (y: number) => 90 - (y / MAP_HEIGHT) * 180;
 
 export const MapContainer: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -59,14 +25,8 @@ export const MapContainer: React.FC = () => {
 
   // --- États Redux ---
   const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon, areaGroups, activeGroupId } = useAppSelector((state) => state.selection);
-  const { allData, status } = useAppSelector((state) => state.data);
+  const { allData, minAnomaly, maxAnomaly, status } = useAppSelector((state) => state.data);
   const { currentYear } = useAppSelector((state) => state.controls);
-
-  // --- Helpers de Conversion de Coordonnées (Logique 1200x600) ---
-  const longitudeToX = (lon: number): number => ((lon + 180) / 360) * 1200;
-  const xToLongitude = (x: number): number => (x / 1200) * 360 - 180;
-  const latitudeToY = (lat: number): number => ((90 - lat) / 180) * 600;
-  const yToLatitude = (y: number): number => 90 - (y / 600) * 180;
 
   // --- Dessin de la Heatmap (Canvas) ---
   useEffect(() => {
@@ -100,8 +60,7 @@ export const MapContainer: React.FC = () => {
       const px = Math.floor((point.lon + 180) / 4);
       const py = Math.floor((90 - point.lat) / 4);
 
-      // C'est ici que la magie opère : on utilise la couleur continue
-      offCtx.fillStyle = getContinuousColor(point.anomaly);
+      offCtx.fillStyle = getTemperatureColor(point.anomaly, minAnomaly, maxAnomaly);
       offCtx.fillRect(px, py, 1, 1);
     });
 
@@ -145,10 +104,10 @@ export const MapContainer: React.FC = () => {
     setCurrentRect({
       id: 'temp',
       groupId: activeGroupId || '', // Associer au groupe actif
-      minLon: xToLongitude(minX),
-      maxLon: xToLongitude(maxX),
-      minLat: yToLatitude(maxY),
-      maxLat: yToLatitude(minY),
+      minLon: xToLon(minX),
+      maxLon: xToLon(maxX),
+      minLat: yToLat(maxY),
+      maxLat: yToLat(minY),
     });
   };
 
@@ -174,16 +133,16 @@ export const MapContainer: React.FC = () => {
     if (selectionMode === 'latitude') {
       const point = getPointInSvg(event);
       if (!point) return;
-      const clickedLat = yToLatitude(point.y);
+      const clickedLat = yToLat(point.y);
       if (clickedLat >= -90 && clickedLat <= 90) dispatch(addLatitude(clickedLat));
     }
   };
 
   const rectToSvgProps = (rect: SelectionRectangle) => {
-    const x = longitudeToX(rect.minLon);
-    const y = latitudeToY(rect.maxLat);
-    const width = longitudeToX(rect.maxLon) - x;
-    const height = latitudeToY(rect.minLat) - y;
+    const x = lonToX(rect.minLon);
+    const y = latToY(rect.maxLat);
+    const width = lonToX(rect.maxLon) - x;
+    const height = latToY(rect.minLat) - y;
     return { x, y, width, height };
   };
 
@@ -191,7 +150,7 @@ export const MapContainer: React.FC = () => {
     <div className="w-full h-full overflow-hidden relative bg-[#f0f0f0]" data-name="ComposableMap">
       <TransformWrapper
         initialScale={1}
-        minScale={1}
+        minScale={0.5}
         maxScale={8}
         centerOnInit={true}
         wheel={{ step: 0.1 }}
@@ -221,8 +180,8 @@ export const MapContainer: React.FC = () => {
             {/* Canvas Heatmap Continue */}
             <canvas
               ref={canvasRef}
-              width={1200}
-              height={600}
+              width={MAP_WIDTH}
+              height={MAP_HEIGHT}
               style={{ 
                 width: '100%', 
                 height: '100%', 
@@ -237,7 +196,7 @@ export const MapContainer: React.FC = () => {
             {/* Couche Interactive SVG */}
             <svg
               ref={svgRef}
-              viewBox="0 0 1200 600"
+              viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}"
               style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
               className={selectionMode !== 'move' ? 'cursor-crosshair' : ''}
               onClick={handleMapClick}
@@ -252,9 +211,9 @@ export const MapContainer: React.FC = () => {
                   <line
                     key={lat}
                     x1="0"
-                    y1={latitudeToY(lat)}
-                    x2="1200"
-                    y2={latitudeToY(lat)}
+                    y1={latToY(lat)}
+                    x2="${MAP_WIDTH}"
+                    y2={latToY(lat)}
                     stroke={LINE_COLORS[index % LINE_COLORS.length]}
                     strokeWidth="2"
                     strokeDasharray="5,5"
@@ -299,10 +258,10 @@ export const MapContainer: React.FC = () => {
                  const lonWidth = 4; 
                  return (
                    <rect 
-                     x={longitudeToX(highlightedLon - lonWidth/2)}
-                     y={latitudeToY(maxLat + lonWidth/2)}
-                     width={longitudeToX(highlightedLon + lonWidth/2) - longitudeToX(highlightedLon - lonWidth/2)}
-                     height={latitudeToY(minLat - lonWidth/2) - latitudeToY(maxLat + lonWidth/2)}
+                     x={lonToX(highlightedLon - lonWidth/2)}
+                     y={latToY(maxLat + lonWidth/2)}
+                     width={lonToX(highlightedLon + lonWidth/2) - lonToX(highlightedLon - lonWidth/2)}
+                     height={latToY(minLat - lonWidth/2) - latToY(maxLat + lonWidth/2)}
                      fill="none"
                      stroke="rgba(255, 255, 0, 0.8)"
                      strokeWidth="3"
