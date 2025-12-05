@@ -1,6 +1,8 @@
 
+interface ColorLegendProps {
+}
 
-export const ColorLegend = () => {
+export const ColorLegend: React.FC<ColorLegendProps> = () => {
   return (
     <div
       className="relative bg-[rgba(255,255,255,0.95)] w-[140px] h-[200px] rounded-[10px] p-4"

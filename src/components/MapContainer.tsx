@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { addLatitude, addArea, SelectionRectangle } from '../slices/selectionSlice';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"; 
-import { LINE_COLORS } from './GraphView'; 
 
 // --- Configuration de la Palette Continue (Basée sur Tailwind) ---
 // Nous définissons des "points d'arrêt" (stops) pour l'interpolation.
@@ -248,14 +247,14 @@ export const MapContainer: React.FC = () => {
             >
               {/* Lignes Latitude */}
               <g id="latitude-lines">
-                {selectedLatitudes.map((lat, index) => (
+                {selectedLatitudes.map((lat) => (
                   <line
-                    key={lat}
+                    key={lat.id}
                     x1="0"
-                    y1={latitudeToY(lat)}
+                    y1={latitudeToY(lat.value)}
                     x2="1200"
-                    y2={latitudeToY(lat)}
-                    stroke={LINE_COLORS[index % LINE_COLORS.length]}
+                    y2={latitudeToY(lat.value)}
+                    stroke={lat.color}
                     strokeWidth="2"
                     strokeDasharray="5,5"
                   />
@@ -294,8 +293,8 @@ export const MapContainer: React.FC = () => {
 
               {/* Highlight Longitude */}
               {highlightedLon !== null && selectedLatitudes.length > 0 && (() => {
-                 const minLat = Math.min(...selectedLatitudes);
-                 const maxLat = Math.max(...selectedLatitudes);
+                 const minLat = Math.min(...selectedLatitudes.map(l => l.value));
+                 const maxLat = Math.max(...selectedLatitudes.map(l => l.value));
                  const lonWidth = 4; 
                  return (
                    <rect 

@@ -2,7 +2,7 @@ import React from 'react';
 // 1. Imports corrigés depuis les bons dossiers
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { setSelectionMode, removeLatitude, removeArea, addAreaGroup, setActiveGroupId } from '../slices/selectionSlice';
-import { LINE_COLORS } from './GraphView'; // Importer les couleurs
+import { toggleGroupVisibility, LINE_COLORS } from '../slices/selectionSlice';
 
 export const SelectionPanel: React.FC = () => {
   // 2. Connexion au store Redux
@@ -48,7 +48,17 @@ export const SelectionPanel: React.FC = () => {
               className={`${baseButtonClass} ${
                 currentMode === 'area' ? activeClass : inactiveClass
               }`}
-              onClick={() => dispatch(setSelectionMode('area'))} // 4. Action au clic
+              onClick={() => {
+                dispatch(setSelectionMode('area'));
+                if (areaGroups.length === 0) {
+                  const newGroupIndex = 0;
+                  dispatch(addAreaGroup({
+                    id: new Date().toISOString(),
+                    name: `Group ${newGroupIndex + 1}`,
+                    color: LINE_COLORS[newGroupIndex % LINE_COLORS.length],
+                  }));
+                }
+              }}
             />
             <p className="font-['Arimo:Regular',sans-serif] text-[16px] text-neutral-950">Area selection</p>
           </div>
@@ -60,17 +70,17 @@ export const SelectionPanel: React.FC = () => {
           <hr className="border-t border-gray-300 mx-[16.8px]" />
           <div className="p-[16.8px] space-y-2 overflow-y-auto">
             <p className="font-['Arimo:Bold',sans-serif] text-sm text-gray-600">Selected Latitudes:</p>
-            {selectedLatitudes.map((lat, index) => (
-              <div key={lat} className="flex items-center justify-between text-sm">
+            {selectedLatitudes.map((lat) => (
+              <div key={lat.id} className="flex items-center justify-between text-sm">
                 <span
-                  style={{ color: LINE_COLORS[index % LINE_COLORS.length], fontWeight: 'bold' }}
+                  style={{ color: lat.color, fontWeight: 'bold' }}
                 >
-                  {lat}° {lat > 0 ? 'N' : lat < 0 ? 'S' : ''}
+                  {lat.value}° {lat.value > 0 ? 'N' : lat.value < 0 ? 'S' : ''}
                 </span>
                 <button
-                  onClick={() => dispatch(removeLatitude(lat))}
+                  onClick={() => dispatch(removeLatitude(lat.value))}
                   className="font-bold text-red-500 hover:text-red-700 text-lg leading-none px-2"
-                  aria-label={`Remove latitude ${lat}°`}
+                  aria-label={`Remove latitude ${lat.value}°`}
                 >
                   &times;
                 </button>
@@ -80,14 +90,25 @@ export const SelectionPanel: React.FC = () => {
         </>
       )}
       {/* --- AJOUT : Affichage des zones sélectionnées --- */}
-      {areaGroups.length > 0 && (
+      {currentMode === 'area' && areaGroups.length > 0 && (
         <>
           <hr className="border-t border-gray-300 mx-[16.8px]" />
           <div className="p-[16.8px] space-y-2 overflow-y-auto">
             <p className="font-['Arimo:Bold',sans-serif] text-sm text-gray-600">Area Groups:</p>
             {areaGroups.map((group) => (
-              <div key={group.id} className={`p-2 rounded-md cursor-pointer ${activeGroupId === group.id ? 'bg-gray-200' : ''}`} onClick={() => dispatch(setActiveGroupId(group.id))}>
-                <div style={{ color: group.color, fontWeight: 'bold' }}>{group.name}</div>
+              <div key={group.id} className={`p-2 rounded-md ${activeGroupId === group.id ? 'bg-gray-200' : ''}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <input
+                    type="checkbox"
+                    checked={group.isVisibleInGraph}
+                    onChange={() => dispatch(toggleGroupVisibility(group.id))}
+                    className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                  />
+                  <div style={{ color: group.color, fontWeight: 'bold' }} className="cursor-pointer" onClick={() => dispatch(setActiveGroupId(group.id))}>
+                    {group.name}
+                  </div>
+                  <div className="flex-grow"></div> {/* Espace pour pousser le bouton de suppression à droite */}
+                </div>
                 <div className="pl-4 mt-1 space-y-1">
                   {selectedAreas.filter(area => area.groupId === group.id).map((area, index) => (
                     <div key={area.id} className="flex items-center justify-between text-sm text-gray-800">

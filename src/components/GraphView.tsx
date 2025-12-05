@@ -5,22 +5,24 @@ import { line as d3Line } from 'd3-shape';
 import { setCurrentYear } from '../slices/controlsSlice';
 
 // --- Constantes pour les dimensions du graphique ---
-const SVG_WIDTH = 320;
-const SVG_HEIGHT = 115;
-const MARGIN = { top: 5, right: 10, bottom: 20, left: 28 };
+const SVG_WIDTH = 360; // Agrandit pour correspondre au widget
+const SVG_HEIGHT = 200; // Agrandit pour correspondre au widget
+const MARGIN = { top: 15, right: 15, bottom: 35, left: 40 }; // Marges ajustées
 const CHART_WIDTH = SVG_WIDTH - MARGIN.left - MARGIN.right;
-const CHART_HEIGHT = SVG_HEIGHT - MARGIN.top - MARGIN.bottom;
+const CHART_HEIGHT = SVG_HEIGHT - MARGIN.top - MARGIN.bottom; // Recalculé automatiquement
 
 // --- Plage des années et des températures pour les axes ---
 const MIN_YEAR = 1880;
 const MAX_YEAR = 2024;
-const MIN_TEMP = -1.5;
-const MAX_TEMP = 1.5;
+const MIN_TEMP = -2.0; // Harmonisé avec l'histogramme
+const MAX_TEMP = 2.0;  // Harmonisé avec l'histogramme
 
 // --- Couleurs pour les différentes courbes ---
-export const LINE_COLORS = ["#DC2626", "#2563EB", "#F97316", "#16A34A", "#9333EA"];
+// LINE_COLORS imported from selectionSlice
 
-export const GraphView: React.FC = () => {
+interface GraphViewProps {}
+
+export const GraphView: React.FC<GraphViewProps> = () => {
   // --- Récupération des données depuis le store Redux ---
   const dispatch = useAppDispatch();
   const { allData, status } = useAppSelector((state) => state.data);
@@ -43,7 +45,7 @@ export const GraphView: React.FC = () => {
     }, {} as Record<number, typeof allData>);
 
     // 2. Pour chaque groupe, calculer la moyenne combinée de ses zones par année
-    return areaGroups.map(group => {
+    return areaGroups.filter(g => g.isVisibleInGraph).map(group => {
       const areasInGroup = selectedAreas.filter(a => a.groupId === group.id);
       if (areasInGroup.length === 0) return null;
 
@@ -114,7 +116,7 @@ export const GraphView: React.FC = () => {
   return (
     <div className="bg-[rgba(255,255,255,0.95)] h-[200px] relative rounded-[10px] shrink-0 w-[360px]" data-name="TemperatureGraph">
       <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none rounded-[10px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
-      <div className="size-full p-2">
+      <div className="size-full">
         <svg width="100%" height="100%" viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} onClick={handleGraphClick} className="cursor-pointer">
           <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
             {/* Y-axis labels */}
@@ -135,6 +137,15 @@ export const GraphView: React.FC = () => {
                 </text>
               </g>
             ))}
+
+            {/* Étiquette de l'axe X */}
+            <text x={CHART_WIDTH / 2} y={CHART_HEIGHT + 30} textAnchor="middle" className="text-[10px] fill-gray-700 font-sans font-bold">
+              Year
+            </text>
+            {/* Étiquette de l'axe Y */}
+            <text transform={`rotate(-90)`} x={-CHART_HEIGHT / 2} y={-MARGIN.left + 12} textAnchor="middle" className="text-[10px] fill-gray-700 font-sans font-bold">
+              Anomaly (°C)
+            </text>
             
             {/* Temperature Line */}
             {areaLinesData.map((lineData) => (
@@ -160,16 +171,6 @@ export const GraphView: React.FC = () => {
 
           </g>
         </svg>
-      </div>
-          
-      {/* Légende dynamique */}
-      <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center gap-4 text-xs font-sans">
-        {areaLinesData.map((lineData) => (
-          <div key={lineData.groupId} className="flex items-center gap-2">
-            <div className="w-4 h-0.5" style={{ backgroundColor: lineData.color }} />
-            <span>{areaGroups.find(g => g.id === lineData.groupId)?.name}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

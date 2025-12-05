@@ -22,6 +22,7 @@ export const Toolbar: React.FC = () => {
   const showGraph = useAppSelector((state) => state.layout.visibleViews.graph);
   const showHistogram = useAppSelector((state) => state.layout.visibleViews.histogram);
   const showHeatmap = useAppSelector((state) => state.layout.visibleViews.heatmap);
+  const showHeatmapView = useAppSelector((state) => state.layout.visibleViews.heatmapView);
 
   // --- AJOUT : Mémorise l'année de départ de l'animation ---
   const animationStartYearRef = useRef(currentYear);
@@ -81,18 +82,6 @@ export const Toolbar: React.FC = () => {
     dispatch(setAnimationSpeed(newSpeed));
   };
 
-  const handleToggleGraph = () => {
-    dispatch(toggleView('graph'));
-  };
-
-  const handleToggleHistogram = () => {
-    dispatch(toggleView('histogram'));
-  };
-
-  const handleToggleHeatmap = () => {
-    dispatch(toggleView('heatmap'));
-  };
-
   return (
     // --- CHANGEMENT 1 : max-w-[1000px] -> max-w-[1200px] ---
     <div className="bg-[rgba(255,255,255,0.95)] h-[69.6px] relative rounded-[10px] w-full max-w-[1200px] mx-auto">
@@ -118,14 +107,17 @@ export const Toolbar: React.FC = () => {
               onSpeedChange={handleSpeedChange}
             />
           </div>
+          {/* Les ViewToggles sont déplacés ici pour remplir l'espace */}
           <div className="flex-shrink-0 ml-auto pointer-events-auto">
             <ViewToggles
               showGraph={showGraph}
               showHistogram={showHistogram}
               showHeatmap={showHeatmap}
-              onToggleGraph={handleToggleGraph}
-              onToggleHistogram={handleToggleHistogram}
-              onToggleHeatmap={handleToggleHeatmap}
+              showHeatmapView={showHeatmapView}
+              onToggleGraph={() => dispatch(toggleView('graph'))}
+              onToggleHistogram={() => dispatch(toggleView('histogram'))}
+              onToggleHeatmap={() => dispatch(toggleView('heatmap'))}
+              onToggleHeatmapView={() => dispatch(toggleView('heatmapView'))}
             />
           </div>
         </div>

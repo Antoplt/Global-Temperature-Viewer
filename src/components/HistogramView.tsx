@@ -16,7 +16,9 @@ const CHART_HEIGHT = SVG_HEIGHT - MARGIN.top - MARGIN.bottom;
 const MIN_TEMP = -2;
 const MAX_TEMP = 2;
 
-export const HistogramView: React.FC = () => {
+interface HistogramViewProps {}
+
+export const HistogramView: React.FC<HistogramViewProps> = () => {
   // --- Récupération des données depuis le store ---
   const dispatch = useAppDispatch();
   const { allData, status } = useAppSelector((state) => state.data);
@@ -34,7 +36,7 @@ export const HistogramView: React.FC = () => {
     const availableLats = [...new Set(allData.map(d => d.lat))];
     const closestLats = selectedLatitudes.map(sl => 
       availableLats.reduce((prev, curr) => 
-        Math.abs(curr - sl) < Math.abs(prev - sl) ? curr : prev
+        Math.abs(curr - sl.value) < Math.abs(prev - sl.value) ? curr : prev
       )
     );
 
@@ -128,12 +130,6 @@ export const HistogramView: React.FC = () => {
             })}
           </g>
         </svg>
-      </div>
-      {/* Légende */}
-      <div className="absolute bottom-2 left-0 right-0 flex justify-center items-center">
-        <p className="font-sans text-sm text-gray-700">
-          Anomaly vs Longitude for {currentYear}
-        </p>
       </div>
     </div>
   );

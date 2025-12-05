@@ -3,11 +3,20 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 // Types pour les sélections
 export type SelectionMode = 'latitude' | 'area' | 'move' | 'none';
 
+export const LINE_COLORS = ["#DC2626", "#2563EB", "#F97316", "#16A34A", "#9333EA"];
+
+export interface SelectedLatitude {
+  id: string;
+  value: number;
+  color: string;
+}
+
 // Un groupe de zones
 export interface AreaGroup {
   id: string;
   name: string;
   color: string;
+  isVisibleInGraph: boolean; // Ajout pour contrôler la visibilité sur le graphique
 }
 
 // Définition d'un rectangle de sélection
@@ -22,7 +31,7 @@ export interface SelectionRectangle {
 
 interface SelectionState {
   selectionMode: SelectionMode;
-  selectedLatitudes: number[];
+  selectedLatitudes: SelectedLatitude[];
   areaGroups: AreaGroup[];
   selectedAreas: SelectionRectangle[];
   activeGroupId: string | null; // Le groupe dans lequel on dessine actuellement
@@ -48,14 +57,26 @@ const selectionSlice = createSlice({
       state.selectionMode = action.payload;
     },
     addLatitude: (state, action: PayloadAction<number>) => {
-      if (!state.selectedLatitudes.includes(action.payload)) {
-        state.selectedLatitudes.push(action.payload);
-        state.selectedLatitudes.sort((a, b) => b - a);
+      const latValue = action.payload;
+      if (!state.selectedLatitudes.some(l => l.value === latValue)) {
+        // Assign a color that isn't used by the immediately preceding latitudes if possible, 
+        // or just cycle through. To ensure stability, we just pick based on current length.
+        // Even if we sort later, this object keeps its color.
+        const color = LINE_COLORS[state.selectedLatitudes.length % LINE_COLORS.length];
+        
+        state.selectedLatitudes.push({
+          id: new Date().toISOString(),
+          value: latValue,
+          color: color
+        });
+        
+        // We can sort by value so the list looks ordered, but the color is now fixed to the object.
+        state.selectedLatitudes.sort((a, b) => b.value - a.value);
       }
     },
     removeLatitude: (state, action: PayloadAction<number>) => {
       state.selectedLatitudes = state.selectedLatitudes.filter(
-        (lat) => lat !== action.payload
+        (lat) => lat.value !== action.payload
       );
     },
     // Action pour ajouter une zone
@@ -75,8 +96,12 @@ const selectionSlice = createSlice({
       }
     },
     // Action pour créer un nouveau groupe
-    addAreaGroup: (state, action: PayloadAction<AreaGroup>) => {
-      state.areaGroups.push(action.payload);
+    addAreaGroup: (state, action: PayloadAction<Omit<AreaGroup, 'isVisibleInGraph'>>) => {
+      const newGroup: AreaGroup = {
+        ...action.payload,
+        isVisibleInGraph: true, // Toujours visible par défaut
+      };
+      state.areaGroups.push(newGroup);
       state.activeGroupId = action.payload.id;
     },
     // Action pour définir le groupe actif
@@ -87,9 +112,16 @@ const selectionSlice = createSlice({
     setHighlightedLon: (state, action: PayloadAction<number | null>) => {
       state.highlightedLon = action.payload;
     },
+    // Action pour basculer la visibilité d'un groupe sur le graphique
+    toggleGroupVisibility: (state, action: PayloadAction<string>) => {
+      const group = state.areaGroups.find(g => g.id === action.payload);
+      if (group) {
+        group.isVisibleInGraph = !group.isVisibleInGraph;
+      }
+    },
   },
 });
 
-export const { setSelectionMode, addLatitude, removeLatitude, addArea, removeArea, addAreaGroup, setActiveGroupId, setHighlightedLon } =
+export const { setSelectionMode, addLatitude, removeLatitude, addArea, removeArea, addAreaGroup, setActiveGroupId, setHighlightedLon, toggleGroupVisibility } =
   selectionSlice.actions;
 export default selectionSlice.reducer;

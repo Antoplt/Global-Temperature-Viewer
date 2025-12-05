@@ -7,8 +7,10 @@ import { MapContainer } from './components/MapContainer';
 import { SelectionPanel } from './components/SelectionPanel';
 import { GraphView } from './components/GraphView';
 import { HistogramView } from './components/HistogramView';
+import { HeatmapView } from './components/HeatmapView';
 import { ColorLegend } from './components/ColorLegend';
 import { Toolbar } from './components/Toolbar';
+import { DraggableWindow } from './components/DraggableWindow';
 
 function AppContent() {
   const dispatch = useAppDispatch();
@@ -18,9 +20,11 @@ function AppContent() {
   const { 
     graph: showGraph, 
     histogram: showHistogram,
-    heatmap: showHeatmap 
+    heatmap: showHeatmap,
+    heatmapView: showHeatmapView
   } = useAppSelector((state) => state.layout.visibleViews);
   
+  const viewPositions = useAppSelector((state) => state.layout.viewPositions);
 
 
   useEffect(() => {
@@ -47,40 +51,44 @@ function AppContent() {
 
       {/* Widgets Container */}
       <div className="absolute inset-0 z-10 pointer-events-none">
-        {/* Selection Panel - Top Left */}
-        <div className="absolute top-4 left-4 pointer-events-auto">
-          <SelectionPanel />
-        </div>
-
-        {/* Graph - Top Right */}
-        {showGraph && (
-          <div className="absolute top-4 right-4 pointer-events-auto">
-            {/* prop 'data' SUPPRIMÉE */}
-            <GraphView /> 
+          {/* Left Column Container */}
+          <div className="absolute top-4 left-4 bottom-4 flex flex-col justify-between w-[250px]">
+            {/* Selection Panel - Top Left */}
+            <div className="pointer-events-auto">
+              <SelectionPanel />
+            </div>
           </div>
-        )}
 
-        {/* Histogram - Below Graph */}
-        {showHistogram && (
-          <div className="absolute top-[216px] right-4 pointer-events-auto">
-            {/* prop 'data' SUPPRIMÉE */}
-            <HistogramView />
+          {/* Draggable Windows */}
+          {showGraph && (
+            <DraggableWindow id="graph" initialPosition={viewPositions.graph}>
+              <GraphView />
+            </DraggableWindow>
+          )}
+          
+          {showHistogram && (
+            <DraggableWindow id="histogram" initialPosition={viewPositions.histogram}>
+              <HistogramView />
+            </DraggableWindow>
+          )}
+          
+          {showHeatmap && (
+            <DraggableWindow id="legend" initialPosition={viewPositions.legend}>
+              <ColorLegend />
+            </DraggableWindow>
+          )}
+
+          {showHeatmapView && (
+            <DraggableWindow id="heatmapView" initialPosition={viewPositions.heatmapView} width={600} height={400}>
+              <HeatmapView />
+            </DraggableWindow>
+          )}
+
+          {/* Toolbar - Bottom */}
+          <div className="absolute bottom-4 left-4 right-4 pointer-events-auto">
+            <Toolbar />
           </div>
-        )}
-
-        {/* Legend - Bottom Left */}
-        {showHeatmap && ( 
-           <div className="absolute bottom-[110px] left-4 pointer-events-auto">
-             {/* prop 'data' SUPPRIMÉE */}
-             <ColorLegend />
-           </div>
-        )}
-
-        {/* Toolbar - Bottom */}
-        <div className="absolute bottom-4 left-4 right-4 pointer-events-auto">
-          <Toolbar />
         </div>
-      </div>
     </div>
   );
 }
