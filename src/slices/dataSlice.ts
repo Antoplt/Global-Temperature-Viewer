@@ -11,12 +11,16 @@ export interface AnomalyData {
 // L'état reste le même
 interface DataState {
   allData: AnomalyData[];
+  minAnomaly: number;
+  maxAnomaly: number;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
 
 const initialState: DataState = {
   allData: [],
+  minAnomaly: -2,
+  maxAnomaly: 2, // valeurs par défaut
   status: 'idle',
   error: null,
 };
@@ -74,6 +78,42 @@ const dataSlice = createSlice({
         state.status = 'succeeded';
         // 'action.payload' est maintenant le tableau plat que nous avons construit
         state.allData = action.payload;
+
+        // --- LOGIQUE DE CALCUL MIN/MAX ADAPTEE AUX VALEURS ---
+        if (action.payload.length > 0) {
+            // On extrait toutes les anomalies et on les trie
+            const anomalies = action.payload.map(d => d.anomaly).sort((a, b) => a - b);
+            
+            // On prend les valeurs à 2% et 98% pour exclure les "outliers"
+            // Cela permet de concentrer l'échelle de couleur sur la majorité des données.
+            const lowerIndex = Math.floor(anomalies.length * 0.02);
+            const upperIndex = Math.floor(anomalies.length * 0.98);
+
+            // On arrondit à l'entier pour une légende propre
+            // Floor pour le min, Ceil pour le max afin d'inclure la plage
+            let minVal = Math.floor(anomalies[Math.max(0, lowerIndex)]);
+            let maxVal = Math.ceil(anomalies[Math.min(anomalies.length - 1, upperIndex)]);
+
+            if (minVal > 0) {
+                // Si toutes les anomalies sont positives, on force le min à 0
+                minVal = 0;
+            } else if (Math.abs(maxVal) < Math.abs(minVal)) {
+                // Si le max absolu est plus petit que le min absolu, on symétrise autour de 0
+                maxVal = Math.abs(minVal);
+            } else {
+                // Sinon, on symétrise le min autour de 0
+                minVal = -maxVal;
+            }
+
+            state.minAnomaly = minVal;
+            state.maxAnomaly = maxVal;
+            
+            // Sécurité : si min/max sont trop proches (ex: 0 et 0), on force un écart minimum
+            if (state.minAnomaly === state.maxAnomaly) {
+                state.minAnomaly -= 1;
+                state.maxAnomaly += 1;
+            }
+        }
       })
       .addCase(fetchData.rejected, (state, action) => {
         state.status = 'failed';

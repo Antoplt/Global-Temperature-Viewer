@@ -3,6 +3,7 @@ import { useAppSelector, useAppDispatch } from '../hooks/hooks';
 import { scaleLinear } from 'd3-scale';
 import { setCurrentYear } from '../slices/controlsSlice';
 import { addLatitude } from '../slices/selectionSlice';
+import { getTemperatureColor } from './ColorLegend';
 
 // --- Constants for dimensions ---
 const SVG_WIDTH = 600;
@@ -16,42 +17,9 @@ const MAX_YEAR = 2024;
 const MIN_LAT = -90;
 const MAX_LAT = 90;
 
-// --- Color Palette (Same as MapContainer) ---
-const COLOR_STOPS = [
-  { val: -2.5, color: { r: 37, g: 99, b: 235 } },   // bg-blue-600
-  { val: -0.5, color: { r: 96, g: 165, b: 250 } },  // bg-blue-400
-  { val: 0,    color: { r: 255, g: 255, b: 255 } }, // White
-  { val: 0.5,  color: { r: 251, g: 191, b: 36 } },  // bg-amber-400
-  { val: 1.0,  color: { r: 249, g: 115, b: 22 } },  // bg-orange-500
-  { val: 2.5,  color: { r: 220, g: 38, b: 38 } },   // bg-red-600
-];
-
-const getContinuousColor = (value: number) => {
-  const val = Math.max(-2.5, Math.min(2.5, value));
-  let lower = COLOR_STOPS[0];
-  let upper = COLOR_STOPS[COLOR_STOPS.length - 1];
-
-  for (let i = 0; i < COLOR_STOPS.length - 1; i++) {
-    if (val >= COLOR_STOPS[i].val && val <= COLOR_STOPS[i+1].val) {
-      lower = COLOR_STOPS[i];
-      upper = COLOR_STOPS[i+1];
-      break;
-    }
-  }
-
-  if (lower === upper) return `rgb(${lower.color.r}, ${lower.color.g}, ${lower.color.b})`;
-
-  const t = (val - lower.val) / (upper.val - lower.val);
-  const r = Math.round(lower.color.r + (upper.color.r - lower.color.r) * t);
-  const g = Math.round(lower.color.g + (upper.color.g - lower.color.g) * t);
-  const b = Math.round(lower.color.b + (upper.color.b - lower.color.b) * t);
-
-  return `rgb(${r}, ${g}, ${b})`;
-};
-
 export const HeatmapView: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { allData, status } = useAppSelector((state) => state.data);
+  const { allData, status, minAnomaly, maxAnomaly } = useAppSelector((state) => state.data);
   const currentYear = useAppSelector((state) => state.controls.currentYear);
   const { selectedLatitudes } = useAppSelector((state) => state.selection);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -138,12 +106,12 @@ export const HeatmapView: React.FC = () => {
       
       const y = yScale(d.lat) - latHeight / 2;
 
-      ctx.fillStyle = getContinuousColor(d.anomaly);
+      ctx.fillStyle = getTemperatureColor(d.anomaly, minAnomaly, maxAnomaly);
       // Use slightly larger width/height to avoid gaps due to anti-aliasing or rounding
       ctx.fillRect(x, y, yearWidth + 0.5, latHeight + 0.5);
     });
 
-  }, [aggregatedData, xScale, yScale, yearWidth, latHeight]);
+  }, [aggregatedData, xScale, yScale, yearWidth, latHeight, minAnomaly, maxAnomaly]);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
