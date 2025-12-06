@@ -1,46 +1,57 @@
+// src/slices/selectionSlice.ts
+// Redux slice for managing user selections of latitudes and areas
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-// Types pour les sélections
+
+// Types for selection modes
 export type SelectionMode = 'latitude' | 'area' | 'move' | 'none';
 
+
+// Predefined line colors for latitudes
 export const LINE_COLORS = ["#DC2626", "#2563EB", "#F97316", "#16A34A", "#9333EA"];
 
+
+// Selected latitude interface
 export interface SelectedLatitude {
   id: string;
   value: number;
   color: string;
 }
 
-// Un groupe de zones
+
+// Group of areas
 export interface AreaGroup {
   id: string;
   name: string;
   color: string;
-  isVisibleInGraph: boolean; // Ajout pour contrôler la visibilité sur le graphique
+  isVisibleInGraph: boolean; 
 }
 
-// Définition d'un rectangle de sélection
+
+// Definition of a selection rectangle
 export interface SelectionRectangle {
   id: string;
-  groupId: string; // Chaque zone appartient à un groupe
+  groupId: string; 
   minLat: number;
   maxLat: number;
   minLon: number;
   maxLon: number;
 }
 
+
+// --- State Interface ---
 interface SelectionState {
   selectionMode: SelectionMode;
   selectedLatitudes: SelectedLatitude[];
   areaGroups: AreaGroup[];
   selectedAreas: SelectionRectangle[];
-  activeGroupId: string | null; // Le groupe dans lequel on dessine actuellement
-  highlightedLon: number | null; // Pour la sélection dans l'histogramme
+  activeGroupId: string | null; 
+  highlightedLon: number | null; 
 }
 
+
+// --- Initial State ---
 const initialState: SelectionState = {
-  // Le mode par défaut est 'latitude' comme dans votre version précédente
-  // mais nous allons le rendre compatible avec 'area'
   selectionMode: 'none',
   selectedLatitudes: [],
   areaGroups: [],
@@ -49,6 +60,8 @@ const initialState: SelectionState = {
   highlightedLon: null,
 };
 
+
+// --- Selection Slice ---
 const selectionSlice = createSlice({
   name: 'selection',
   initialState,
@@ -74,45 +87,53 @@ const selectionSlice = createSlice({
         state.selectedLatitudes.sort((a, b) => b.value - a.value);
       }
     },
+
+    // Action to remove a latitude
     removeLatitude: (state, action: PayloadAction<number>) => {
       state.selectedLatitudes = state.selectedLatitudes.filter(
         (lat) => lat.value !== action.payload
       );
     },
-    // Action pour ajouter une zone
+    
+    // Action to add an area
     addArea: (state, action: PayloadAction<SelectionRectangle>) => {
       state.selectedAreas.push(action.payload);
     },
-    // Action pour supprimer une zone par son ID
+    
+    // Action to remove an area by its ID
     removeArea: (state, action: PayloadAction<string>) => {
       state.selectedAreas = state.selectedAreas.filter(
         (area) => area.id !== action.payload
       );
-      // Si on supprime la dernière zone d'un groupe, on supprime aussi le groupe
+      
       const remainingGroups = new Set(state.selectedAreas.map(a => a.groupId));
       state.areaGroups = state.areaGroups.filter(g => remainingGroups.has(g.id));
       if (state.activeGroupId && !remainingGroups.has(state.activeGroupId)) {
         state.activeGroupId = state.areaGroups.length > 0 ? state.areaGroups[0].id : null;
       }
     },
-    // Action pour créer un nouveau groupe
+
+    // Action to create a new group
     addAreaGroup: (state, action: PayloadAction<Omit<AreaGroup, 'isVisibleInGraph'>>) => {
       const newGroup: AreaGroup = {
         ...action.payload,
-        isVisibleInGraph: true, // Toujours visible par défaut
+        isVisibleInGraph: true, 
       };
       state.areaGroups.push(newGroup);
       state.activeGroupId = action.payload.id;
     },
-    // Action pour définir le groupe actif
+    
+    // Action to set the active group
     setActiveGroupId: (state, action: PayloadAction<string>) => {
       state.activeGroupId = action.payload;
     },
-    // Action pour mettre en évidence une longitude
+    
+    // Action to highlight a longitude
     setHighlightedLon: (state, action: PayloadAction<number | null>) => {
       state.highlightedLon = action.payload;
     },
-    // Action pour basculer la visibilité d'un groupe sur le graphique
+
+    // Action to toggle the visibility of a group on the graph
     toggleGroupVisibility: (state, action: PayloadAction<string>) => {
       const group = state.areaGroups.find(g => g.id === action.payload);
       if (group) {
@@ -121,6 +142,7 @@ const selectionSlice = createSlice({
     },
   },
 });
+
 
 export const { setSelectionMode, addLatitude, removeLatitude, addArea, removeArea, addAreaGroup, setActiveGroupId, setHighlightedLon, toggleGroupVisibility } =
   selectionSlice.actions;

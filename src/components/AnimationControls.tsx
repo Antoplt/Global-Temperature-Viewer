@@ -1,6 +1,11 @@
+// src/components/AnimationControls.tsx
+// Component for animation controls in the toolbar
+
 import React from 'react';
 import svgPaths from '../imports/svg-fsqvf8pn71';
 
+
+// --- Props Interface ---
 interface AnimationControlsProps {
   isPlaying: boolean;
   speed: number;
@@ -10,6 +15,8 @@ interface AnimationControlsProps {
   onSpeedChange: (speed: number) => void;
 }
 
+
+// --- AnimationControls Component ---
 export const AnimationControls: React.FC<AnimationControlsProps> = ({
   isPlaying,
   speed,
@@ -19,10 +26,9 @@ export const AnimationControls: React.FC<AnimationControlsProps> = ({
   onSpeedChange
 }) => {
   return (
-    // J'ai réduit le 'gap' pour un meilleur espacement visuel
+    
     <div className="flex gap-[12px] h-[36px] items-center"> 
       {/* Play/Pause Button */}
-      {/* L'ancien conteneur 'data-name="Container"' qui incluait le texte a été retiré */}
       <div 
         className="bg-white relative rounded-[8px] shrink-0 size-[36px] cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={isPlaying ? onPause : onPlay}
@@ -38,11 +44,7 @@ export const AnimationControls: React.FC<AnimationControlsProps> = ({
           </div>
         </div>
       </div>
-      {/* Le <div> avec le texte "Play/Pause" a été supprimé */}
-
-
       {/* Restart Button */}
-      {/* L'ancien conteneur 'data-name="Container"' qui incluait le texte a été retiré */}
       <div 
         className="bg-white relative rounded-[8px] shrink-0 size-[36px] cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={onRestart}
@@ -59,15 +61,12 @@ export const AnimationControls: React.FC<AnimationControlsProps> = ({
           </div>
         </div>
       </div>
-      {/* Le <div> avec le texte "Restart" a été supprimé */}
-
-
-      {/* Speed Control with Slider (Inchangé) */}
+      {/* Speed Control with Slider */}
       <div className="flex items-center gap-[12px]" data-name="Container">
-        <div className="h-[20px] relative" data-name="Text">
-          <p className="font-['Arimo:Regular',sans-serif] leading-[20px] text-[14px] text-neutral-950 text-nowrap whitespace-pre">Speed</p>
+        <div className="relative" data-name="Text">
+          <p className="font-['Arimo:Regular',sans-serif] text-[14px] text-neutral-950 text-nowrap whitespace-pre">Speed</p>
         </div>
-        <div className="relative w-[80px]">
+        <div className="relative w-[80px] flex items-center h-full">
           <input
             type="range"
             min="1"
@@ -78,8 +77,8 @@ export const AnimationControls: React.FC<AnimationControlsProps> = ({
             className="w-full h-[4px] bg-gray-300 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-[14px] [&::-webkit-slider-thumb]:h-[14px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-[14px] [&::-moz-range-thumb]:h-[14px] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-black [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
           />
         </div>
-        <div className="h-[20px] relative min-w-[20px]" data-name="Text">
-          <p className="font-['Arimo:Regular',sans-serif] leading-[20px] text-[14px] text-neutral-950">{speed}x</p>
+        <div className="relative min-w-[20px]" data-name="Text">
+          <p className="font-['Arimo:Regular',sans-serif] text-[14px] text-neutral-950">{speed}x</p>
         </div>
       </div>
     </div>

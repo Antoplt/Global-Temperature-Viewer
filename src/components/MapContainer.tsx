@@ -1,33 +1,41 @@
+// src/components/MapContainer.tsx
+// Component for the interactive world map with temperature anomaly heatmap and selection features
 import React, { useRef, useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { addLatitude, addArea, SelectionRectangle } from '../slices/selectionSlice';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"; 
 import { getTemperatureColor } from './ColorLegend';
 
+
+// --- Constants for map dimensions and coordinate conversions ---
 const MAP_WIDTH = 1200;
 const MAP_HEIGHT = 600;
 
+
+// Conversion functions between lon/lat and x/y on the map
 const lonToX = (lon: number) => ((lon + 180) / 360) * MAP_WIDTH;
 const latToY = (lat: number) => ((90 - lat) / 180) * MAP_HEIGHT;
 const xToLon = (x: number) => (x / MAP_WIDTH) * 360 - 180;
 const yToLat = (y: number) => 90 - (y / MAP_HEIGHT) * 180;
 
+
+// --- MapContainer Component ---
 export const MapContainer: React.FC = () => {
   const dispatch = useAppDispatch();
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // --- États Locaux ---
+  // --- Local States ---
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
   const [currentRect, setCurrentRect] = useState<SelectionRectangle | null>(null);
 
-  // --- États Redux ---
+  // --- Redux States ---
   const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon, areaGroups, activeGroupId } = useAppSelector((state) => state.selection);
   const { allData, minAnomaly, maxAnomaly, status } = useAppSelector((state) => state.data);
   const { currentYear } = useAppSelector((state) => state.controls);
 
-  // --- Dessin de la Heatmap (Canvas) ---
+  // --- Drawing the Heatmap (Canvas) ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !allData || status !== 'succeeded') return;
@@ -42,7 +50,7 @@ export const MapContainer: React.FC = () => {
       return;
     }
 
-    // 1. Création d'un petit canvas "tampon" correspondant à la grille de données (90x45 pour 4°x4°)
+    // Creation of a small "offscreen" canvas corresponding to the data grid (90x45 for 4°x4°)
     const gridWidth = 90;
     const gridHeight = 45;
     
@@ -53,8 +61,8 @@ export const MapContainer: React.FC = () => {
 
     if (!offCtx) return;
 
-    // 2. Remplissage pixel par pixel avec la couleur interpolée
-    // Chaque pixel représente une zone de 4°x4°
+    // Filling pixel by pixel with the interpolated color
+    // Each pixel represents a 4°x4° area
     yearData.forEach((point) => {
       const px = Math.floor((point.lon + 180) / 4);
       const py = Math.floor((90 - point.lat) / 4);
@@ -63,16 +71,16 @@ export const MapContainer: React.FC = () => {
       offCtx.fillRect(px, py, 1, 1);
     });
 
-    // 3. Dessin final étiré (l'interpolation bilinéaire du navigateur crée le flou)
+    // 3. Final stretched drawing (the browser's bilinear interpolation creates the blur)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.globalAlpha = 0.6; // Transparence pour voir la carte en dessous
+    ctx.globalAlpha = 0.6; // Transparency to see the map underneath
     ctx.drawImage(offCanvas, 0, 0, gridWidth, gridHeight, 0, 0, canvas.width, canvas.height);
     ctx.globalAlpha = 1.0;
 
   }, [allData, currentYear, status]);
 
 
-  // --- Gestion des interactions (identique à avant) ---
+  // --- Interaction Handling (same as before) ---
   const getPointInSvg = (event: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return null;
     const svgPoint = svgRef.current.createSVGPoint();
@@ -81,6 +89,7 @@ export const MapContainer: React.FC = () => {
     return svgPoint.matrixTransform(svgRef.current.getScreenCTM()?.inverse());
   };
 
+  // Mouse event handler for starting the drawing of a selection rectangle
   const handleMouseDown = (event: React.MouseEvent<SVGSVGElement>) => {
     if (selectionMode !== 'area') return;
     event.preventDefault();
@@ -90,6 +99,7 @@ export const MapContainer: React.FC = () => {
     setStartPoint({ x: point.x, y: point.y });
   };
 
+  // Mouse move handler for drawing selection rectangle
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
     if (!isDrawing || !startPoint) return;
     const point = getPointInSvg(event);
@@ -110,15 +120,17 @@ export const MapContainer: React.FC = () => {
     });
   };
 
+  // Mouse up handler to finalize the selection rectangle
   const handleMouseUp = () => {
     if (!isDrawing || !currentRect) return;
-    if (!activeGroupId) return; // Ne rien faire si aucun groupe n'est actif
+    if (!activeGroupId) return; // Do nothing if no group is active
     dispatch(addArea({ ...currentRect, id: new Date().toISOString() }));
     setIsDrawing(false);
     setStartPoint(null);
     setCurrentRect(null);
   };
 
+  // Mouse leave handler to cancel drawing if the mouse leaves the SVG area
   const handleMouseLeave = () => {
     if (isDrawing) {
       setIsDrawing(false);
@@ -127,6 +139,7 @@ export const MapContainer: React.FC = () => {
     }
   };
 
+  // Click handler for latitude selection
   const handleMapClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if (selectionMode === 'move') return;
     if (selectionMode === 'latitude') {
@@ -137,6 +150,7 @@ export const MapContainer: React.FC = () => {
     }
   };
 
+  // --- Helper to convert SelectionRectangle to SVG rect props ---
   const rectToSvgProps = (rect: SelectionRectangle) => {
     const x = lonToX(rect.minLon);
     const y = latToY(rect.maxLat);
@@ -169,14 +183,14 @@ export const MapContainer: React.FC = () => {
             position: 'relative',
             margin: 'auto'
           }}>
-            {/* Image Carte */}
+            {/* Map Image */}
             <img 
               src="/earth.svg" 
               alt="World Map" 
               style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }} 
             />
 
-            {/* Canvas Heatmap Continue */}
+            {/* Canvas Heatmap Layer */}
             <canvas
               ref={canvasRef}
               width={MAP_WIDTH}
@@ -188,11 +202,11 @@ export const MapContainer: React.FC = () => {
                 top: 0, 
                 left: 0, 
                 pointerEvents: 'none',
-                imageRendering: 'auto' // Assure le lissage par le navigateur
+                imageRendering: 'auto' // Ensures smoothing by the browser
               }}
             />
 
-            {/* Couche Interactive SVG */}
+            {/* Interactive SVG Layer */}
             <svg
               ref={svgRef}
               viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
@@ -204,7 +218,7 @@ export const MapContainer: React.FC = () => {
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseLeave}
             >
-              {/* Lignes Latitude */}
+              {/* Latitude Lines */}
               <g id="latitude-lines">
                 {selectedLatitudes.map((lat) => (
                   <line
@@ -220,12 +234,12 @@ export const MapContainer: React.FC = () => {
                 ))}
               </g>
 
-              {/* Zones Sélectionnées */}
+              {/* Selected Areas */}
               <g id="area-selections">
                 {selectedAreas.map((area, index) => {
                   const group = areaGroups.find(g => g.id === area.groupId);
                   const props = rectToSvgProps(area);
-                  const color = group?.color || '#888888'; // Couleur par défaut si le groupe n'est pas trouvé
+                  const color = group?.color || '#888888'; // Default color if group not found
                   const fillColor = `rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 0.1)`;
                   
                   return (

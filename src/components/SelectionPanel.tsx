@@ -1,48 +1,53 @@
+// src/components/SelectionPanel.tsx
+// Component for the selection panel with mode buttons and selected items list
 import React from 'react';
-// 1. Imports corrigés depuis les bons dossiers
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { setSelectionMode, removeLatitude, removeArea, addAreaGroup, setActiveGroupId } from '../slices/selectionSlice';
 import { toggleGroupVisibility, LINE_COLORS } from '../slices/selectionSlice';
 
+
+// --- SelectionPanel Component ---
 export const SelectionPanel: React.FC = () => {
-  // 2. Connexion au store Redux
+  
   const dispatch = useAppDispatch();
-  // On récupère aussi la liste des latitudes
+
+  // Retrieve selection state from the store
   const { selectionMode: currentMode, selectedLatitudes, selectedAreas, areaGroups, activeGroupId } = useAppSelector((state) => state.selection);
 
-  // 3. Classes de style pour les boutons
+  // --- Button Styles ---
   const baseButtonClass = "size-[32px] rounded-[4px] border-[1.6px] border-black cursor-pointer hover:bg-gray-200 transition-colors pointer-events-auto";
-  const activeClass = "bg-gray-300";   // Style pour le bouton actif
-  const inactiveClass = "bg-[#f3f3f5]"; // Style pour le bouton inactif
+  const activeClass = "bg-gray-300";   
+  const inactiveClass = "bg-[#f3f3f5]"; 
+
 
   return (
     <div className="bg-[rgba(255,255,255,0.95)] relative rounded-[10px] shrink-0 w-[250px] max-h-[600px] flex flex-col">
       <div aria-hidden="true" className="absolute border-[0.8px] border-gray-200 border-solid inset-0 pointer-events-none rounded-[10px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
       <div className="p-[16.8px]">
         <div className="space-y-[12px]">
-          {/* --- Bouton de sélection Déplacement --- */}
+          {/* --- Move Selection Button --- */}
           <div className="flex items-center gap-[12px]">
             <div 
               className={`${baseButtonClass} ${
                 currentMode === 'move' ? activeClass : inactiveClass
               }`}
-              onClick={() => dispatch(setSelectionMode('move'))} // 4. Action au clic
+              onClick={() => dispatch(setSelectionMode('move'))} 
             />
             <p className="font-['Arimo:Regular',sans-serif] text-[16px] text-neutral-950">Move</p>
           </div>
 
-          {/* --- Bouton de sélection Latitude --- */}
+          {/* --- Latitude Selection Button --- */}
           <div className="flex items-center gap-[12px]">
             <div 
               className={`${baseButtonClass} ${
                 currentMode === 'latitude' ? activeClass : inactiveClass
               }`}
-              onClick={() => dispatch(setSelectionMode('latitude'))} // 4. Action au clic
+              onClick={() => dispatch(setSelectionMode('latitude'))} 
             />
             <p className="font-['Arimo:Regular',sans-serif] text-[16px] text-neutral-950">Latitude selection</p>
           </div>
           
-          {/* --- Bouton de sélection Area --- */}
+          {/* --- Area Selection Button --- */}
           <div className="flex items-center gap-[12px]">
             <div 
               className={`${baseButtonClass} ${
@@ -64,7 +69,7 @@ export const SelectionPanel: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* --- AJOUT : Affichage des latitudes sélectionnées --- */}
+      {/* --- Display of selected latitudes --- */}
       {currentMode === 'latitude' && selectedLatitudes.length > 0 && (
         <>
           <hr className="border-t border-gray-300 mx-[16.8px]" />
@@ -89,25 +94,34 @@ export const SelectionPanel: React.FC = () => {
           </div>
         </>
       )}
-      {/* --- AJOUT : Affichage des zones sélectionnées --- */}
+      {/* --- Display of selected areas --- */}
       {currentMode === 'area' && areaGroups.length > 0 && (
         <>
           <hr className="border-t border-gray-300 mx-[16.8px]" />
           <div className="p-[16.8px] space-y-2 overflow-y-auto">
             <p className="font-['Arimo:Bold',sans-serif] text-sm text-gray-600">Area Groups:</p>
             {areaGroups.map((group) => (
-              <div key={group.id} className={`p-2 rounded-md ${activeGroupId === group.id ? 'bg-gray-200' : ''}`}>
+              <div 
+                key={group.id} 
+                className={`p-2 rounded-md border-2 transition-all ${activeGroupId === group.id ? 'border-blue-500 bg-blue-50' : 'border-transparent hover:bg-gray-100'}`}
+                onClick={() => dispatch(setActiveGroupId(group.id))}
+              >
                 <div className="flex items-center justify-between gap-2">
-                  <input
-                    type="checkbox"
-                    checked={group.isVisibleInGraph}
-                    onChange={() => dispatch(toggleGroupVisibility(group.id))}
-                    className="form-checkbox h-4 w-4 text-blue-600 rounded"
-                  />
-                  <div style={{ color: group.color, fontWeight: 'bold' }} className="cursor-pointer" onClick={() => dispatch(setActiveGroupId(group.id))}>
-                    {group.name}
+                  <div className="flex items-center gap-2">
+                    {/* Visual indicator of the active group */}
+                    <div className={`w-3 h-3 rounded-full ${activeGroupId === group.id ? 'bg-blue-500 ring-2 ring-blue-200' : 'bg-gray-300'}`} />
+                    
+                    <input
+                      type="checkbox"
+                      checked={group.isVisibleInGraph}
+                      onChange={(e) => { e.stopPropagation(); dispatch(toggleGroupVisibility(group.id)); }}
+                      className="form-checkbox h-4 w-4 text-blue-600 rounded cursor-pointer"
+                    />
+                    <span style={{ color: group.color, fontWeight: 'bold' }} className="cursor-pointer select-none">
+                      {group.name} {activeGroupId === group.id && <span className="text-xs text-blue-500 ml-1">(Active)</span>}
+                    </span>
                   </div>
-                  <div className="flex-grow"></div> {/* Espace pour pousser le bouton de suppression à droite */}
+                  <div className="flex-grow"></div> {/* Space to push the delete button to the right */}
                 </div>
                 <div className="pl-4 mt-1 space-y-1">
                   {selectedAreas.filter(area => area.groupId === group.id).map((area, index) => (
@@ -128,7 +142,7 @@ export const SelectionPanel: React.FC = () => {
           </div>
         </>
       )}
-      {/* Bouton pour ajouter un groupe */}
+      {/* Button to add a group */}
       {currentMode === 'area' && (
         <>
           <hr className="border-t border-gray-300 mx-[16.8px]" />

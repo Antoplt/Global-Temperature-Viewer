@@ -1,36 +1,44 @@
+// src/slices/layoutSlice.ts
+// Redux slice for managing layout views and their positions
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+
+// --- Position Interface ---
 export interface Position {
   x: number;
   y: number;
 }
 
+
+// --- State Interface ---
 interface LayoutState {
   visibleViews: {
     graph: boolean;
     histogram: boolean;
-    heatmap: boolean; // 'heatmap' contrôle la visibilité de la légende
+    colorLegend: boolean; 
     heatmapView: boolean;
   };
   viewPositions: {
     graph: Position;
     histogram: Position;
-    legend: Position;
+    colorLegend: Position;
     heatmapView: Position;
   };
 }
 
+
+// --- Initial State ---
 const initialState: LayoutState = {
   visibleViews: {
     graph: true,
     histogram: true,
-    heatmap: true, 
+    colorLegend: true, 
     heatmapView: false,
   },
   viewPositions: {
     graph: { x: window.innerWidth - 400, y: 20 },
     histogram: { x: window.innerWidth - 400, y: 240 },
-    legend: { x: 20, y: window.innerHeight - 240 },
+    colorLegend: { x: 20, y: window.innerHeight - 350 },
     heatmapView: { x: 20, y: 20 },
   }
 };

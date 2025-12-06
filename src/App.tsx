@@ -1,3 +1,5 @@
+// src/App.tsx
+// Main application component setting up the Redux provider and rendering core components
 import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { store } from './stores/store'; 
@@ -12,15 +14,17 @@ import { ColorLegend } from './components/ColorLegend';
 import { Toolbar } from './components/Toolbar';
 import { DraggableWindow } from './components/DraggableWindow';
 
+
+// --- Main App Content Component ---
 function AppContent() {
   const dispatch = useAppDispatch();
 
-  
   const dataStatus = useAppSelector((state) => state.data.status);
+  
   const { 
     graph: showGraph, 
     histogram: showHistogram,
-    heatmap: showHeatmap,
+    colorLegend: showColorLegend,
     heatmapView: showHeatmapView
   } = useAppSelector((state) => state.layout.visibleViews);
   
@@ -45,7 +49,6 @@ function AppContent() {
     <div className="bg-gray-100 w-screen h-screen overflow-hidden relative" data-name="Global Temperature Viewer App">
       {/* World Map Background */}
       <div className="absolute inset-0 z-0">
-        {/* prop 'currentYear' SUPPRIMÉE */}
         <MapContainer /> 
       </div>
 
@@ -72,8 +75,8 @@ function AppContent() {
             </DraggableWindow>
           )}
           
-          {showHeatmap && (
-            <DraggableWindow id="legend" initialPosition={viewPositions.legend}>
+          {showColorLegend && (
+            <DraggableWindow id="colorLegend" initialPosition={viewPositions.colorLegend} resizable={false}>
               <ColorLegend />
             </DraggableWindow>
           )}

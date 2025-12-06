@@ -1,93 +1,90 @@
+// src/components/TimeSlider.tsx
+// Component for selecting year via slider and input box
 import React, { useState, useEffect } from 'react';
 
+
+// --- Props Interface ---
 interface TimeSliderProps {
   currentYear: number;
   onYearChange: (year: number) => void;
 }
 
-const MIN_YEAR = 1880;
-const MAX_YEAR = 2024; // Mettez ici l'année max de vos données
 
+// --- Constants for year range ---
+const MIN_YEAR = 1880;
+const MAX_YEAR = 2024; 
+
+
+// --- TimeSlider Component ---
 export const TimeSlider: React.FC<TimeSliderProps> = ({ currentYear, onYearChange }) => {
   const [inputValue, setInputValue] = useState(currentYear.toString());
 
-  // Mettre à jour la valeur du champ si l'année change depuis l'extérieur (ex: slider)
+  // Update the input field value if the year changes externally (e.g., slider)
   useEffect(() => {
     setInputValue(currentYear.toString());
   }, [currentYear]);
 
+  // Handle Enter key press in the input box
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       const newYear = parseInt(inputValue, 10);
 
-      // Valide que la valeur est un nombre et dans la plage autorisée
+      // Validate that the value is a number and within the allowed range
       if (!isNaN(newYear) && newYear >= MIN_YEAR && newYear <= MAX_YEAR) {
         onYearChange(newYear);
       } else {
-        // Si invalide, réinitialise à l'année actuelle
+        // If invalid, reset to the current year
         setInputValue(currentYear.toString());
       }
-      // Optionnel: retire le focus du champ après la soumission
+      // Remove focus from the input field after submission
       event.currentTarget.blur();
     }
   };
 
   return (
-    <div className="content-stretch flex gap-[16px] h-[35.2px] items-center" data-name="Container">
+    <div className="w-full flex items-center gap-[16px] h-[35.2px]">
       {/* YEAR Label */}
-      <div className="h-[24px] relative shrink-0 w-[38.375px]" data-name="Text">
-        <div className="bg-clip-padding border-0 border-[transparent] border-solid box-border h-[24px] relative w-[38.375px]">
-          <p className="absolute font-['Arimo:Bold',sans-serif] leading-[24px] left-0 text-[16px] text-neutral-950 text-nowrap top-[-2.2px] whitespace-pre">YEAR</p>
-        </div>
+      <div className="shrink-0 flex items-center h-full">
+        <p className="font-['Arimo:Bold',sans-serif] text-[16px] text-neutral-950 whitespace-pre">YEAR</p>
       </div>
 
-      {/* Year Input and Slider */}
-      <div className="basis-0 grow h-[35.2px] min-h-px min-w-px relative shrink-0" data-name="Container">
-        <div className="bg-clip-padding border-0 border-[transparent] border-solid box-border h-[35.2px] relative w-full">
-          
-          {/* Year Display */}
-          <div className="absolute h-[35.2px] left-0 top-0 w-[80px]" data-name="Container">
-            {/* Bordure décorative (inchangée) */}
-            <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none" />
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={() => setInputValue(currentYear.toString())} // Réinitialise si on quitte le champ sans valider
-              className="w-full h-full bg-transparent text-center font-['Arimo:Regular',sans-serif] text-[16px] text-neutral-950 focus:outline-none"
-              // Ajout de `aria-label` pour l'accessibilité
-              aria-label="Year input, press Enter to submit"
-            />
-          </div>
+      {/* Year Input Box */}
+      <div className="relative w-[80px] h-full shrink-0">
+        <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none" />
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => setInputValue(currentYear.toString())}
+          className="w-full h-full bg-transparent text-center font-['Arimo:Regular',sans-serif] text-[16px] text-neutral-950 focus:outline-none"
+          aria-label="Year input"
+        />
+      </div>
 
-          {/* --- SLIDER AVEC CLASSES CORRIGÉES --- */}
-          <div className="absolute h-[16px] left-[88px] top-[9.6px] w-full flex items-center pr-4"> {/* Ajustement du conteneur */}
-            <input
-              type="range"
-              min={MIN_YEAR}
-              max={MAX_YEAR}
-              step="1"
-              value={currentYear}
-              onChange={(e) => onYearChange(Number(e.target.value))}
-              // *** Voici les classes copiées du slider de vitesse (qui marche) ***
-              className="w-full h-[4px] bg-gray-300 rounded-full appearance-none cursor-pointer 
-              [&::-webkit-slider-thumb]:appearance-none 
-              [&::-webkit-slider-thumb]:w-[14px] 
-              [&::-webkit-slider-thumb]:h-[14px] 
-              [&::-webkit-slider-thumb]:rounded-full 
-              [&::-webkit-slider-thumb]:bg-black 
-              [&::-webkit-slider-thumb]:cursor-pointer 
-              [&::-moz-range-thumb]:w-[14px] 
-              [&::-moz-range-thumb]:h-[14px] 
-              [&::-moz-range-thumb]:rounded-full 
-              [&::-moz-range-thumb]:bg-black 
-              [&::-moz-range-thumb]:border-0 
-              [&::-moz-range-thumb]:cursor-pointer"
-            />
-          </div>
-
-        </div>
+      {/* Slider */}
+      <div className="flex-1 flex items-center h-full">
+        <input
+          type="range"
+          min={MIN_YEAR}
+          max={MAX_YEAR}
+          step="1"
+          value={currentYear}
+          onChange={(e) => onYearChange(Number(e.target.value))}
+          className="w-full h-[4px] bg-gray-300 rounded-full appearance-none cursor-pointer 
+          [&::-webkit-slider-thumb]:appearance-none 
+          [&::-webkit-slider-thumb]:w-[14px] 
+          [&::-webkit-slider-thumb]:h-[14px] 
+          [&::-webkit-slider-thumb]:rounded-full 
+          [&::-webkit-slider-thumb]:bg-black 
+          [&::-webkit-slider-thumb]:cursor-pointer 
+          [&::-moz-range-thumb]:w-[14px] 
+          [&::-moz-range-thumb]:h-[14px] 
+          [&::-moz-range-thumb]:rounded-full 
+          [&::-moz-range-thumb]:bg-black 
+          [&::-moz-range-thumb]:border-0 
+          [&::-moz-range-thumb]:cursor-pointer"
+        />
       </div>
     </div>
   );

@@ -1,17 +1,25 @@
+// src/slices/controlsSlice.ts
+// Redux slice for controlling the current year, animation state, and speed
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+
+// --- State Interface ---
 interface ControlsState {
   currentYear: number;
   isPlaying: boolean;
-  animationSpeed: number; // ex: 1 = 1x, 2 = 2x
+  animationSpeed: number; 
 }
 
+
+// --- Initial State ---
 const initialState: ControlsState = {
-  currentYear: 1880, // Année de début par défaut, à ajuster
+  currentYear: 1880, 
   isPlaying: false,
   animationSpeed: 1,
 };
 
+
+// --- Controls Slice ---
 const controlsSlice = createSlice({
   name: 'controls',
   initialState,

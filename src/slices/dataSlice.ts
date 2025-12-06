@@ -1,6 +1,9 @@
+// src/slices/dataSlice.ts
+// Redux slice for fetching and storing temperature anomaly data
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-// C'est le format "plat" que l'application ATTEND
+
+// --- Data Interface ---
 export interface AnomalyData {
   year: number;
   lat: number;
@@ -8,7 +11,8 @@ export interface AnomalyData {
   anomaly: number;
 }
 
-// L'état reste le même
+
+// --- State Interface ---
 interface DataState {
   allData: AnomalyData[];
   minAnomaly: number;
@@ -17,15 +21,18 @@ interface DataState {
   error: string | null;
 }
 
+
+// --- Initial State ---
 const initialState: DataState = {
   allData: [],
   minAnomaly: -2,
-  maxAnomaly: 2, // valeurs par défaut
+  maxAnomaly: 2, 
   status: 'idle',
   error: null,
 };
 
 
+// --- Async Thunk to Fetch and Transform Data ---
 export const fetchData = createAsyncThunk('data/fetchData', async () => {
   const response = await fetch('/tempanomaly_4x4grid.json');
   if (!response.ok) {
@@ -33,23 +40,23 @@ export const fetchData = createAsyncThunk('data/fetchData', async () => {
   }
   const rawData = await response.json();
 
-  // --- LOGIQUE DE TRANSFORMATION ---
+  // --- Data Transformation Logic ---
   const flatData: AnomalyData[] = [];
   
-  // 1. Accéder au bon tableau
+  // 1. Access the correct array
   const gridCells = rawData.tempanomaly; 
 
-  // 2. Boucler sur chaque cellule de la grille (ex: {lat: -88, lon: -178, data: [...]})
+  // 2. Loop through each grid cell (e.g., {lat: -88, lon: -178, data: [...]})
   for (const cell of gridCells) {
     const lat = cell.lat;
     const lon = cell.lon;
 
-    // 3. Boucler sur chaque entrée année/valeur (ex: {"1880": "NA"})
+    // 3. Loop through each year/value entry (e.g., {"1880": "NA"})
     for (const yearEntry of cell.data) {
       const yearStr = Object.keys(yearEntry)[0];
       const anomalyStr = Object.values(yearEntry)[0] as string;
 
-      // 4. Ignorer les données manquantes ("NA")
+      // 4. Ignore missing data ("NA")
       if (anomalyStr !== 'NA') {
         flatData.push({
           year: parseInt(yearStr, 10),
@@ -61,10 +68,12 @@ export const fetchData = createAsyncThunk('data/fetchData', async () => {
     }
   }
 
-  // 5. Retourner le grand tableau "plat"
+  // 5. Return the flattened array"
   return flatData;
 });
 
+
+// --- Data Slice ---
 const dataSlice = createSlice({
   name: 'data',
   initialState,
@@ -76,39 +85,38 @@ const dataSlice = createSlice({
       })
       .addCase(fetchData.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // 'action.payload' est maintenant le tableau plat que nous avons construit
         state.allData = action.payload;
 
-        // --- LOGIQUE DE CALCUL MIN/MAX ADAPTEE AUX VALEURS ---
+        // --- MIN/MAX CALCULATION LOGIC ADAPTED TO VALUES ---
         if (action.payload.length > 0) {
-            // On extrait toutes les anomalies et on les trie
+            // Sort anomalies to find percentiles
             const anomalies = action.payload.map(d => d.anomaly).sort((a, b) => a - b);
             
-            // On prend les valeurs à 2% et 98% pour exclure les "outliers"
-            // Cela permet de concentrer l'échelle de couleur sur la majorité des données.
+            // Only consider the 2nd to 98th percentiles for min/max
+            // This helps focus the color scale on the majority of the data.
             const lowerIndex = Math.floor(anomalies.length * 0.02);
             const upperIndex = Math.floor(anomalies.length * 0.98);
 
-            // On arrondit à l'entier pour une légende propre
-            // Floor pour le min, Ceil pour le max afin d'inclure la plage
+            // Round to integers for a clean legend
+            // Floor for min, Ceil for max to include the range
             let minVal = Math.floor(anomalies[Math.max(0, lowerIndex)]);
             let maxVal = Math.ceil(anomalies[Math.min(anomalies.length - 1, upperIndex)]);
 
             if (minVal > 0) {
-                // Si toutes les anomalies sont positives, on force le min à 0
+                // If all anomalies are positive, force min to 0
                 minVal = 0;
             } else if (Math.abs(maxVal) < Math.abs(minVal)) {
-                // Si le max absolu est plus petit que le min absolu, on symétrise autour de 0
+                // If absolute max is smaller than absolute min, symmetrize around 0
                 maxVal = Math.abs(minVal);
             } else {
-                // Sinon, on symétrise le min autour de 0
+                // Otherwise, symmetrize min around 0
                 minVal = -maxVal;
             }
 
             state.minAnomaly = minVal;
             state.maxAnomaly = maxVal;
             
-            // Sécurité : si min/max sont trop proches (ex: 0 et 0), on force un écart minimum
+            // Ensure min and max are not equal to avoid division by zero
             if (state.minAnomaly === state.maxAnomaly) {
                 state.minAnomaly -= 1;
                 state.maxAnomaly += 1;
