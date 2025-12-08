@@ -32,7 +32,7 @@ export const ExtremesPanel: React.FC = () => {
         
         <div className="flex gap-2 overflow-hidden h-full pl-12">
           {/* Hottest Column */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto left-[30px]">
             <h4 className="font-semibold text-[10px] text-red-600 border-b border-red-200 mb-1 pb-0.5 flex items-center gap-1 sticky top-0 bg-white/95 backdrop-blur-sm z-10">
               <span className="text-sm">🔥</span> 
               <span className="uppercase tracking-wide">Hottest</span>
@@ -41,7 +41,7 @@ export const ExtremesPanel: React.FC = () => {
               {extremes.top5.map((d, i) => (
                 <li key={i} className="flex flex-col gap-0.5 text-[10px] bg-red-50/50 p-1 rounded border border-red-100 hover:bg-red-50 transition-colors">
                   <span className="font-medium text-gray-700 truncate">Lat:{d.lat} Lon:{d.lon}</span>
-                  <span className="font-mono font-bold text-red-600 bg-white px-1 py-0 rounded border border-red-100 self-start text-[9px]">
+                  <span className="font-mono font-bold text-red-600 px-1 py-0 rounded border border-red-100 self-start text-[9px]">
                     +{d.anomaly.toFixed(2)}°C
                   </span>
                 </li>
@@ -59,7 +59,7 @@ export const ExtremesPanel: React.FC = () => {
               {extremes.flop5.map((d, i) => (
                 <li key={i} className="flex flex-col gap-0.5 text-[10px] bg-blue-50/50 p-1 rounded border border-blue-100 hover:bg-blue-50 transition-colors">
                   <span className="font-medium text-gray-700 truncate">Lat:{d.lat} Lon:{d.lon}</span>
-                  <span className="font-mono font-bold text-blue-600 bg-white px-1 py-0 rounded border border-blue-100 self-start text-[9px]">
+                  <span className="font-mono font-bold text-blue-600 px-1 py-0 rounded border border-blue-100 self-start text-[9px]">
                     {d.anomaly.toFixed(2)}°C
                   </span>
                 </li>
