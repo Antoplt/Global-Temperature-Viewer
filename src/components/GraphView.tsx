@@ -35,6 +35,9 @@ export const GraphView: React.FC<GraphViewProps> = ({ width = 360, height = 200 
   const { selectedAreas, areaGroups } = useAppSelector((state) => state.selection);
   const currentYear = useAppSelector((state) => state.controls.currentYear);
 
+  const [hoveredYear, setHoveredYear] = React.useState<number | null>(null);
+  const [mousePos, setMousePos] = React.useState<{ x: number, y: number } | null>(null);
+
   // Calculation of graph data (memoized for performance) 
   const areaLinesData = useMemo(() => {
     if (status !== 'succeeded' || areaGroups.length === 0) {
@@ -75,10 +78,11 @@ export const GraphView: React.FC<GraphViewProps> = ({ width = 360, height = 200 
       }
       return {
         groupId: group.id,
+        name: group.name,
         color: group.color,
         data: yearlyMeans,
       };
-    }).filter(Boolean) as { groupId: string; color: string; data: { year: number; mean: number }[] }[]; // Filtrer les groupes vides
+    }).filter(Boolean) as { groupId: string; name: string; color: string; data: { year: number; mean: number }[] }[]; // Filtrer les groupes vides
   }, [allData, selectedAreas, areaGroups, status]);
 
   // --- Creation of D3 scales ---
@@ -111,6 +115,32 @@ export const GraphView: React.FC<GraphViewProps> = ({ width = 360, height = 200 
     }
   };
 
+  const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    const svg = event.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const x = event.clientX - rect.left - MARGIN.left;
+    const y = event.clientY - rect.top;
+
+    if (x >= 0 && x <= CHART_WIDTH) {
+      const year = Math.round(xScale.invert(x));
+      if (year >= MIN_YEAR && year <= MAX_YEAR) {
+        setHoveredYear(year);
+        setMousePos({ x: event.clientX - rect.left, y: y });
+      } else {
+        setHoveredYear(null);
+        setMousePos(null);
+      }
+    } else {
+      setHoveredYear(null);
+      setMousePos(null);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredYear(null);
+    setMousePos(null);
+  };
+
   // If no area groups are defined, show a placeholder message
   if (areaGroups.length === 0) {
     return (
@@ -124,8 +154,16 @@ export const GraphView: React.FC<GraphViewProps> = ({ width = 360, height = 200 
   return (
     <div className="bg-[rgba(255,255,255,0.95)] relative rounded-[10px]" style={{ width, height }} data-name="TemperatureGraph">
       <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none rounded-[10px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]" />
-      <div className="size-full">
-        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} onClick={handleGraphClick} className="cursor-pointer">
+      <div className="size-full relative">
+        <svg 
+          width="100%" 
+          height="100%" 
+          viewBox={`0 0 ${width} ${height}`} 
+          onClick={handleGraphClick}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          className="cursor-crosshair"
+        >
           <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
             {/* Axes and Grid */}
             {/* Y Axis */}
@@ -171,8 +209,45 @@ export const GraphView: React.FC<GraphViewProps> = ({ width = 360, height = 200 
                 strokeLinejoin="round"
               />
             ))}
+
+            {/* Hover Line */}
+            {hoveredYear && (
+              <line
+                x1={xScale(hoveredYear)}
+                y1="0"
+                x2={xScale(hoveredYear)}
+                y2={CHART_HEIGHT}
+                stroke="#666"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+            )}
           </g>
         </svg>
+
+        {/* Tooltip */}
+        {hoveredYear && mousePos && (
+          <div 
+            className="absolute bg-white/90 backdrop-blur-sm border border-gray-200 p-2 rounded shadow-lg text-xs pointer-events-none z-50"
+            style={{ 
+              left: Math.min(mousePos.x + 10, width - 150), 
+              top: Math.min(mousePos.y + 10, height - 100)
+            }}
+          >
+            <div className="font-bold mb-1">{hoveredYear}</div>
+            {areaLinesData.map(group => {
+              const point = group.data.find(d => d.year === hoveredYear);
+              if (!point) return null;
+              return (
+                <div key={group.groupId} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: group.color }} />
+                  <span>{group.name}:</span>
+                  <span className="font-mono">{point.mean.toFixed(2)}°C</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ export const Toolbar: React.FC = () => {
   const showHistogram = useAppSelector((state) => state.layout.visibleViews.histogram);
   const showColorLegend = useAppSelector((state) => state.layout.visibleViews.colorLegend);
   const showHeatmapView = useAppSelector((state) => state.layout.visibleViews.heatmapView);
+  const showExtremesPanel = useAppSelector((state) => state.layout.visibleViews.extremesPanel);
 
  
   const animationStartYearRef = useRef(currentYear);
@@ -115,10 +116,12 @@ export const Toolbar: React.FC = () => {
               showHistogram={showHistogram}
               showColorLegend={showColorLegend}
               showHeatmapView={showHeatmapView}
+              showExtremesPanel={showExtremesPanel}
               onToggleGraph={() => dispatch(toggleView('graph'))}
               onToggleHistogram={() => dispatch(toggleView('histogram'))}
               onToggleColorLegend={() => dispatch(toggleView('colorLegend'))}
               onToggleHeatmapView={() => dispatch(toggleView('heatmapView'))}
+              onToggleExtremesPanel={() => dispatch(toggleView('extremesPanel'))}
             />
           </div>
         </div>

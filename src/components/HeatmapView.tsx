@@ -33,7 +33,7 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ width = 600, height = 
   const currentYear = useAppSelector((state) => state.controls.currentYear);
   const { selectedLatitudes } = useAppSelector((state) => state.selection);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hoveredCell, setHoveredCell] = useState<{ year: number; lat: number } | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ year: number; lat: number; anomaly?: number; x: number; y: number } | null>(null);
 
   // --- Data Aggregation ---
   const aggregatedData = useMemo(() => {
@@ -144,7 +144,16 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ width = 600, height = 
         }
     }
     
-    setHoveredCell({ year, lat: closestLat });
+    // Find anomaly value
+    const dataPoint = aggregatedData?.find(d => d.year === year && d.lat === closestLat);
+
+    setHoveredCell({ 
+      year, 
+      lat: closestLat, 
+      anomaly: dataPoint?.anomaly,
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top
+    });
   };
 
   // --- Mouse Leave Handler ---
@@ -259,6 +268,20 @@ export const HeatmapView: React.FC<HeatmapViewProps> = ({ width = 600, height = 
             )}
           </g>
         </svg>
+
+        {hoveredCell && (
+          <div
+            className="absolute z-50 bg-background/95 border border-border p-2 rounded shadow-lg text-xs pointer-events-none"
+            style={{
+              left: hoveredCell.x + 10,
+              top: hoveredCell.y - 10,
+            }}
+          >
+            <div className="font-bold">Year: {hoveredCell.year}</div>
+            <div>Lat: {hoveredCell.lat}°</div>
+            <div>Anomaly: {hoveredCell.anomaly.toFixed(2)}°C</div>
+          </div>
+        )}
       </div>
     </div>
   );

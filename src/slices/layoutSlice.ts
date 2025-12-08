@@ -17,12 +17,14 @@ interface LayoutState {
     histogram: boolean;
     colorLegend: boolean; 
     heatmapView: boolean;
+    extremesPanel: boolean;
   };
   viewPositions: {
     graph: Position;
     histogram: Position;
     colorLegend: Position;
     heatmapView: Position;
+    extremesPanel: Position;
   };
 }
 
@@ -34,12 +36,14 @@ const initialState: LayoutState = {
     histogram: true,
     colorLegend: true, 
     heatmapView: false,
+    extremesPanel: false,
   },
   viewPositions: {
     graph: { x: window.innerWidth - 400, y: 20 },
     histogram: { x: window.innerWidth - 400, y: 240 },
     colorLegend: { x: 20, y: window.innerHeight - 350 },
     heatmapView: { x: 20, y: 20 },
+    extremesPanel: { x: window.innerWidth - 300, y: 460 },
   }
 };
 

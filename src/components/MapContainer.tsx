@@ -29,6 +29,7 @@ export const MapContainer: React.FC = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
   const [currentRect, setCurrentRect] = useState<SelectionRectangle | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ lat: number; lon: number } | null>(null);
 
   // --- Redux States ---
   const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon, areaGroups, activeGroupId } = useAppSelector((state) => state.selection);
@@ -101,9 +102,15 @@ export const MapContainer: React.FC = () => {
 
   // Mouse move handler for drawing selection rectangle
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDrawing || !startPoint) return;
     const point = getPointInSvg(event);
     if (!point) return;
+
+    setCursorPos({
+      lat: yToLat(point.y),
+      lon: xToLon(point.x)
+    });
+
+    if (!isDrawing || !startPoint) return;
 
     const minX = Math.min(startPoint.x, point.x);
     const maxX = Math.max(startPoint.x, point.x);
@@ -132,6 +139,7 @@ export const MapContainer: React.FC = () => {
 
   // Mouse leave handler to cancel drawing if the mouse leaves the SVG area
   const handleMouseLeave = () => {
+    setCursorPos(null);
     if (isDrawing) {
       setIsDrawing(false);
       setStartPoint(null);
@@ -161,6 +169,12 @@ export const MapContainer: React.FC = () => {
 
   return (
     <div className="w-full h-full overflow-hidden relative bg-[#f0f0f0]" data-name="ComposableMap">
+      {cursorPos && (
+        <div className="absolute top-0 left-0 z-50 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-br-md text-[10px] font-mono border-r border-b border-gray-200 shadow-sm pointer-events-none flex gap-3 text-gray-700">
+          <span>Lat: <span className="font-bold text-black">{cursorPos.lat.toFixed(1)}°</span></span>
+          <span>Lon: <span className="font-bold text-black">{cursorPos.lon.toFixed(1)}°</span></span>
+        </div>
+      )}
       <TransformWrapper
         initialScale={1}
         minScale={0.5}

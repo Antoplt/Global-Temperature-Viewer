@@ -8,7 +8,7 @@ import { GripVertical, ArrowDownRight } from 'lucide-react';
 
 // --- Props Interface ---
 interface DraggableWindowProps {
-  id: 'graph' | 'histogram' | 'colorLegend' | 'heatmapView';
+  id: 'graph' | 'histogram' | 'colorLegend' | 'heatmapView' | 'extremesPanel';
   initialPosition: Position;
   children: React.ReactNode;
   title?: string;

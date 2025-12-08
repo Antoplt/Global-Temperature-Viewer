@@ -2,7 +2,7 @@
 // Component for animation controls in the toolbar
 
 import React from 'react';
-import svgPaths from '../imports/svg-fsqvf8pn71';
+import { Play, Pause, RotateCcw } from 'lucide-react';
 
 
 // --- Props Interface ---
@@ -30,36 +30,21 @@ export const AnimationControls: React.FC<AnimationControlsProps> = ({
     <div className="flex gap-[12px] h-[36px] items-center"> 
       {/* Play/Pause Button */}
       <div 
-        className="bg-white relative rounded-[8px] shrink-0 size-[36px] cursor-pointer hover:bg-gray-50 transition-colors"
+        className="bg-white relative rounded-[8px] shrink-0 size-[36px] cursor-pointer hover:bg-gray-50 transition-colors flex items-center justify-center border-[1.6px] border-black"
         onClick={isPlaying ? onPause : onPlay}
       >
-        <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none rounded-[8px]" />
-        <div className="bg-clip-padding border-0 border-[transparent] border-solid box-border content-stretch flex items-center justify-center p-[1.6px] relative size-[36px]">
-          <div className="relative shrink-0 size-[16px]" data-name="Icon">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-              <g id="Icon">
-                <path d={svgPaths.p2bb5f600} id="Vector" stroke="var(--stroke-0, #0A0A0A)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.33333" />
-              </g>
-            </svg>
-          </div>
-        </div>
+        {isPlaying ? (
+          <Pause className="w-4 h-4 text-black fill-black" />
+        ) : (
+          <Play className="w-4 h-4 text-black fill-black ml-0.5" />
+        )}
       </div>
       {/* Restart Button */}
       <div 
-        className="bg-white relative rounded-[8px] shrink-0 size-[36px] cursor-pointer hover:bg-gray-50 transition-colors"
+        className="bg-white relative rounded-[8px] shrink-0 size-[36px] cursor-pointer hover:bg-gray-50 transition-colors flex items-center justify-center border-[1.6px] border-black"
         onClick={onRestart}
       >
-        <div aria-hidden="true" className="absolute border-[1.6px] border-black border-solid inset-0 pointer-events-none rounded-[8px]" />
-        <div className="bg-clip-padding border-0 border-[transparent] border-solid box-border content-stretch flex items-center justify-center p-[1.6px] relative size-[36px]">
-          <div className="relative shrink-0 size-[16px]" data-name="Icon">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-              <g id="Icon">
-                <path d={svgPaths.p12949080} id="Vector" stroke="var(--stroke-0, #0A0A0A)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.33333" />
-                <path d="M2 2V5.33333H5.33333" id="Vector_2" stroke="var(--stroke-0, #0A0A0A)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.33333" />
-              </g>
-            </svg>
-          </div>
-        </div>
+        <RotateCcw className="w-4 h-4 text-black" />
       </div>
       {/* Speed Control with Slider */}
       <div className="flex items-center gap-[12px]" data-name="Container">

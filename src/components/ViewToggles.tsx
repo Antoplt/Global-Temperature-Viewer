@@ -10,10 +10,12 @@ interface ViewTogglesProps {
   showHistogram: boolean;
   showColorLegend: boolean;
   showHeatmapView: boolean;
+  showExtremesPanel: boolean;
   onToggleGraph: () => void;
   onToggleHistogram: () => void;
   onToggleColorLegend: () => void;
   onToggleHeatmapView: () => void;
+  onToggleExtremesPanel: () => void;
 }
 
 
@@ -23,10 +25,12 @@ export const ViewToggles: React.FC<ViewTogglesProps> = ({
   showHistogram,
   showColorLegend,
   showHeatmapView,
+  showExtremesPanel,
   onToggleGraph,
   onToggleHistogram,
   onToggleColorLegend,
   onToggleHeatmapView,
+  onToggleExtremesPanel,
 }) => {
   
   const ToggleItem = ({ label, checked, onToggle }: { label: string, checked: boolean, onToggle: () => void }) => (
@@ -57,6 +61,7 @@ export const ViewToggles: React.FC<ViewTogglesProps> = ({
       <ToggleItem label="Histogram" checked={showHistogram} onToggle={onToggleHistogram} />
       <ToggleItem label="Color Legend" checked={showColorLegend} onToggle={onToggleColorLegend} />
       <ToggleItem label="Heatmap" checked={showHeatmapView} onToggle={onToggleHeatmapView} />
+      <ToggleItem label="Extremes" checked={showExtremesPanel} onToggle={onToggleExtremesPanel} />
     </div>
   );
 };

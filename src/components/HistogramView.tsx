@@ -34,6 +34,8 @@ export const HistogramView: React.FC<HistogramViewProps> = ({ width = 360, heigh
   const currentYear = useAppSelector((state) => state.controls.currentYear);
   const { selectedLatitudes, highlightedLon } = useAppSelector((state) => state.selection);
 
+  const [hoveredBar, setHoveredBar] = React.useState<{ lon: number, meanAnomaly: number, x: number, y: number } | null>(null);
+
   // Calculation of data for the histogram (memoized) 
   const histogramData = useMemo(() => {
     if (status !== 'succeeded' || selectedLatitudes.length === 0) {
@@ -129,6 +131,30 @@ export const HistogramView: React.FC<HistogramViewProps> = ({ width = 360, heigh
                   height={Math.abs(yScale(meanAnomaly) - yScale(0))}
                   fill={meanAnomaly > 0 ? "#F97316" : "#2563EB"}
                   onClick={() => handleBarClick(lon)}
+                  onMouseEnter={(e) => {
+                    const container = e.currentTarget.closest('[data-name="TemperatureHistogram"]');
+                    if (container) {
+                        const rect = container.getBoundingClientRect();
+                        setHoveredBar({
+                            lon,
+                            meanAnomaly,
+                            x: e.clientX - rect.left,
+                            y: e.clientY - rect.top
+                        });
+                    }
+                  }}
+                  onMouseMove={(e) => {
+                    const container = e.currentTarget.closest('[data-name="TemperatureHistogram"]');
+                    if (container) {
+                        const rect = container.getBoundingClientRect();
+                        setHoveredBar(prev => prev ? ({
+                            ...prev,
+                            x: e.clientX - rect.left,
+                            y: e.clientY - rect.top
+                        }) : null);
+                    }
+                  }}
+                  onMouseLeave={() => setHoveredBar(null)}
                   className="cursor-pointer"
                   stroke={isHighlighted ? '#0A0A0A' : 'none'}
                   strokeWidth={isHighlighted ? 2 : 0}
@@ -137,6 +163,20 @@ export const HistogramView: React.FC<HistogramViewProps> = ({ width = 360, heigh
             })}
           </g>
         </svg>
+        
+        {/* Tooltip */}
+        {hoveredBar && (
+          <div 
+            className="absolute bg-white/90 backdrop-blur-sm border border-gray-200 p-2 rounded shadow-lg text-xs pointer-events-none z-50"
+            style={{ 
+              left: hoveredBar.x + 10, 
+              top: hoveredBar.y + 10
+            }}
+          >
+            <div className="font-bold">Lon: {hoveredBar.lon}°</div>
+            <div>Anomaly: {hoveredBar.meanAnomaly.toFixed(2)}°C</div>
+          </div>
+        )}
       </div>
     </div>
   );
