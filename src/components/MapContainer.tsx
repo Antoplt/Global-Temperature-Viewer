@@ -1,8 +1,9 @@
 // src/components/MapContainer.tsx
 // Component for the interactive world map with temperature anomaly heatmap and selection features
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks';
 import { addLatitude, addArea, SelectionRectangle } from '../slices/selectionSlice';
+import { AnomalyData } from '../slices/dataSlice';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"; 
 import { getTemperatureColor } from './ColorLegend';
 
@@ -30,11 +31,51 @@ export const MapContainer: React.FC = () => {
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
   const [currentRect, setCurrentRect] = useState<SelectionRectangle | null>(null);
   const [cursorPos, setCursorPos] = useState<{ lat: number; lon: number } | null>(null);
+  const [hoveredExtreme, setHoveredExtreme] = useState<{ data: AnomalyData; rank: number; isHot: boolean } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
   // --- Redux States ---
   const { selectionMode, selectedLatitudes, selectedAreas, highlightedLon, areaGroups, activeGroupId } = useAppSelector((state) => state.selection);
   const { allData, minAnomaly, maxAnomaly, status } = useAppSelector((state) => state.data);
   const { currentYear } = useAppSelector((state) => state.controls);
+  const showExtremes = useAppSelector((state) => state.layout.visibleViews.extremes);
+
+  const extremes = useMemo(() => {
+    if (!allData || allData.length === 0) return { top5: [], flop5: [] };
+
+    const yearData = allData.filter((d) => d.year === currentYear);
+    
+    // Function to filter points that are too close (within ~20 degrees)
+    const filterClosestPoints = (sortedData: AnomalyData[], maxPoints: number = 5, minDistance: number = 20) => {
+      const filtered: AnomalyData[] = [];
+      
+      for (const point of sortedData) {
+        // Check if this point is far enough from all already selected points
+        const isFarEnough = filtered.every(existing => {
+          const latDiff = Math.abs(existing.lat - point.lat);
+          const lonDiff = Math.abs(existing.lon - point.lon);
+          return latDiff > minDistance || lonDiff > minDistance;
+        });
+        
+        if (isFarEnough) {
+          filtered.push(point);
+          if (filtered.length >= maxPoints) break;
+        }
+      }
+      
+      return filtered;
+    };
+    
+    // Sort descending for hottest
+    const sortedDesc = [...yearData].sort((a, b) => b.anomaly - a.anomaly);
+    const top5 = filterClosestPoints(sortedDesc, 5);
+
+    // Sort ascending for coldest
+    const sortedAsc = [...yearData].sort((a, b) => a.anomaly - b.anomaly);
+    const flop5 = filterClosestPoints(sortedAsc, 5);
+
+    return { top5, flop5 };
+  }, [allData, currentYear]);
 
   // --- Drawing the Heatmap (Canvas) ---
   useEffect(() => {
@@ -175,6 +216,7 @@ export const MapContainer: React.FC = () => {
           <span>Lon: <span className="font-bold text-black">{cursorPos.lon.toFixed(1)}°</span></span>
         </div>
       )}
+      
       <TransformWrapper
         initialScale={1}
         minScale={0.5}
@@ -296,10 +338,89 @@ export const MapContainer: React.FC = () => {
                    />
                  );
               })()}
+
+              {/* Extremes Emojis */}
+              {showExtremes && (
+                <g id="extremes-markers">
+                  {extremes.top5.map((d, i) => (
+                    <text
+                      key={`hot-${i}`}
+                      x={lonToX(d.lon)}
+                      y={latToY(d.lat)}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize="20"
+                      className="cursor-pointer select-none"
+                      onMouseEnter={() => setHoveredExtreme({ data: d, rank: i + 1, isHot: true })}
+                      onMouseMove={(e) => {
+                          const rect = svgRef.current?.getBoundingClientRect();
+                          if (rect) {
+                            setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                          }
+                      }}
+                      onMouseLeave={() => {
+                          setHoveredExtreme(null);
+                          setMousePos(null);
+                      }}
+                    >
+                      🔥
+                    </text>
+                  ))}
+                  {extremes.flop5.map((d, i) => (
+                    <text
+                      key={`cold-${i}`}
+                      x={lonToX(d.lon)}
+                      y={latToY(d.lat)}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize="20"
+                      className="cursor-pointer select-none"
+                      onMouseEnter={() => setHoveredExtreme({ data: d, rank: i + 1, isHot: false })}
+                      onMouseMove={(e) => {
+                          const rect = svgRef.current?.getBoundingClientRect();
+                          if (rect) {
+                            setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                          }
+                      }}
+                      onMouseLeave={() => {
+                          setHoveredExtreme(null);
+                          setMousePos(null);
+                      }}
+                    >
+                      ❄️
+                    </text>
+                  ))}
+                </g>
+              )}
             </svg>
           </div>
         </TransformComponent>
       </TransformWrapper>
+
+      {/* Extreme Point Tooltip */}
+      {hoveredExtreme && mousePos && (
+        <div 
+            className="absolute z-[9999] pointer-events-none"
+            style={{ 
+                left: mousePos.x + 15,
+                top: mousePos.y + 15,
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                padding: '12px',
+                borderRadius: '10px',
+                boxShadow: '0px 10px 15px -3px rgba(0,0,0,0.1), 0px 4px 6px -4px rgba(0,0,0,0.1)',
+                border: '1px solid #e5e7eb',
+                fontSize: '14px'
+            }}
+        >
+            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                {hoveredExtreme.isHot ? `🔥 ${hoveredExtreme.rank}${hoveredExtreme.rank === 1 ? 'ère' : 'e'} anomalie la plus élevée` : `❄️ ${hoveredExtreme.rank}${hoveredExtreme.rank === 1 ? 'ère' : 'e'} anomalie la plus basse`}
+            </div>
+            <div style={{ fontSize: '12px' }}>Lat: {hoveredExtreme.data.lat}°, Lon: {hoveredExtreme.data.lon}°</div>
+            <div style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '12px', color: hoveredExtreme.data.anomaly > 0 ? '#dc2626' : '#2563eb' }}>
+                Anomalie: {hoveredExtreme.data.anomaly > 0 ? '+' : ''}{hoveredExtreme.data.anomaly.toFixed(2)}°C
+            </div>
+        </div>
+      )}
     </div>
   );
 };

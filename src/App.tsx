@@ -11,7 +11,6 @@ import { GraphView } from './components/GraphView';
 import { HistogramView } from './components/HistogramView';
 import { HeatmapView } from './components/HeatmapView';
 import { ColorLegend } from './components/ColorLegend';
-import { ExtremesPanel } from './components/ExtremesPanel';
 import { Toolbar } from './components/Toolbar';
 import { DraggableWindow } from './components/DraggableWindow';
 
@@ -26,8 +25,7 @@ function AppContent() {
     graph: showGraph, 
     histogram: showHistogram,
     colorLegend: showColorLegend,
-    heatmapView: showHeatmapView,
-    extremesPanel: showExtremesPanel
+    heatmapView: showHeatmapView
   } = useAppSelector((state) => state.layout.visibleViews);
   
   const viewPositions = useAppSelector((state) => state.layout.viewPositions);
@@ -86,12 +84,6 @@ function AppContent() {
           {showHeatmapView && (
             <DraggableWindow id="heatmapView" initialPosition={viewPositions.heatmapView} width={600} height={400}>
               <HeatmapView />
-            </DraggableWindow>
-          )}
-
-          {showExtremesPanel && (
-            <DraggableWindow id="extremesPanel" initialPosition={viewPositions.extremesPanel} resizable={false} height={240} width={280}>
-              <ExtremesPanel />
             </DraggableWindow>
           )}
 
