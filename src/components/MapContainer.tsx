@@ -413,7 +413,7 @@ export const MapContainer: React.FC = () => {
             }}
         >
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                {hoveredExtreme.isHot ? `🔥 ${hoveredExtreme.rank}${hoveredExtreme.rank === 1 ? 'ère' : 'e'} anomalie la plus élevée` : `❄️ ${hoveredExtreme.rank}${hoveredExtreme.rank === 1 ? 'ère' : 'e'} anomalie la plus basse`}
+                {hoveredExtreme.isHot ? `🔥 ${hoveredExtreme.rank}${hoveredExtreme.rank === 1 ? 'ère' : 'e'} plus forte anomalie positive` : `❄️ ${hoveredExtreme.rank}${hoveredExtreme.rank === 1 ? 'ère' : 'e'} plus forte anomalie négative`}
             </div>
             <div style={{ fontSize: '12px' }}>Lat: {hoveredExtreme.data.lat}°, Lon: {hoveredExtreme.data.lon}°</div>
             <div style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '12px', color: hoveredExtreme.data.anomaly > 0 ? '#dc2626' : '#2563eb' }}>
